@@ -221,9 +221,9 @@ FeaturePlot(human_subset, features = c("OPN1SW", "THRB", "RHO"))
 #Reading GeneMart data
 merge_1_2_3_4 = read.csv('/Users/vishruthdinesh/Downloads/martMergeRefHuman_cleaned_file.csv')
 
-mouse_subset = subset(mouse, cells = WhichCells(mouse, downsample = 78, seed = 12345))
+mouse_subset = subset(mouse, cells = WhichCells(mouse, downsample = 80, seed = 12345))
 marmoset_subset = subset(int_marmoset, cells = WhichCells(int_marmoset, downsample = 150, seed = 12345))
-chicken_subset = subset(chicken, cells = WhichCells(chicken, downsample = 80, seed = 12341))
+chicken_subset = subset(chicken, cells = WhichCells(chicken, downsample = 40, seed = 12345))
 lizard_subset = subset(lizard, cells = WhichCells(lizard, downsample = 120, seed = 12345))
 cow_subset = subset(cow, cells = WhichCells(cow, downsample = 150, seed = 12345))
 squirrel_subset = subset(squirrel, cells = WhichCells(squirrel, downsample = 250, seed = 12345))
@@ -262,7 +262,7 @@ squirrel_genes <- oneToOneMartMouMarChiLiz$Squirrel.gene.name
 #zebrafish_genes <- oneToOneMartMouMarChiLiz$Zebrafish.gene.name
 
 #Creating a common list of genes btwn. the two species
-gene_lists <- list(marmoset_genes, cow_genes, squirrel_genes, lizard_genes, mouse_genes)
+gene_lists <- list(marmoset_genes, cow_genes, squirrel_genes, lizard_genes, mouse_genes, chicken_genes)
 
 
 additional_genes <- c("OPN1SW", "OPN1LW", "CCDC136", "OPN2SW", "OPN1MW", "PTPRD", "SLC4A7", "CDH20", "SAG")
@@ -297,14 +297,14 @@ ortho_human$celltype <- ortho_human$annotated_class
 
 ```{r}
 #Merging the Datasets
-ph <- merge(ortho_lizard, y = c(ortho_cow, ortho_squirrel, ortho_marmoset, ortho_human, ortho_mouse), add.cell.ids = c("cow", "squirrel", "marmoset", "human", "lizard", "mouse"), project = "merge")
+ph <- merge(ortho_lizard, y = c(ortho_cow, ortho_squirrel, ortho_marmoset, ortho_human, ortho_mouse, ortho_chicken), add.cell.ids = c("lizard", "cow","squirrel", "marmoset", "human", "mouse", "chicken"), project = "merge")
 table(ph$species)
 ```
 
 
 ```{r}
 #Integrating using ClusterSeruat (josh's) function
-OrthoObject2 = ClusterSeurat(ph, nfeatures = 2000, numPCs = 15, integrate.by = "species", cluster_resolution = 0.8)
+OrthoObject2 = ClusterSeurat(ph, nfeatures = 2000, numPCs = 15, integrate.by = "species", cluster_resolution = 0.935)
 ```
 
 ```{r}
@@ -318,12 +318,14 @@ OrthoObject2$celltype <- sub("SCone", "s-cone", OrthoObject2$celltype)
 OrthoObject2$celltype <- sub("sCones", "s-cone", OrthoObject2$celltype)
 OrthoObject2$celltype <- sub("l/m-cones", "l/m-cone", OrthoObject2$celltype)
 OrthoObject2$celltype <- sub("rods", "rod", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("double", "double-cone", OrthoObject2$celltype)
 ```
 
 
 ```{r}
 #UMAP Plots
-DimPlot(OrthoObject2, group.by = "celltype")
+celltype_colors <- c("rod" = "limegreen", "s-cone" = "cornflowerblue", "l/m-cone" = "brown1", "double-cone" = "orange")
+DimPlot(OrthoObject2, group.by = "celltype", cols = celltype_colors)
 DimPlot(OrthoObject2, group.by = "species")
 DimPlot(OrthoObject2, reduction = "umap")
 table(OrthoObject2$celltype, OrthoObject2$seurat_clusters)
