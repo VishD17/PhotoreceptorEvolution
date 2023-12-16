@@ -1,0 +1,181 @@
+```{r}
+#Load libraries
+library(tidyverse)
+library(pals)
+## library(ggtree)
+library(ape)
+library(adephylo)
+
+
+library(ggplot2)
+library(ggdendro)
+library(cowplot)
+library(phylogram)
+library(dendextend)
+library(circlize)
+library(RColorBrewer)
+library(viridis)
+```
+
+```{r}
+#Figure 2A
+species_list <- c("Chicken", "Cow", "Human", "Lizard", "Marmoset", "Mouse", "Squirrel")
+species_list
+
+
+Rod_markers = c("RHO", "GNAT1", "ESRRB", "SAG", "PDE6G", "NR2E3", "EPB41L2")
+LM_cone_markers = c("PDE6C", "THRB", "CNGB3", "SOX5", "OPN1LW", "SLC24A2", "MAP3K5")
+S_cone_markers = c("OPN1SW", "CCDC136", "CDH20", "AGAP1","LDLRAD4", "THSD7A", "BICD1")
+
+top_features = c(Rod_markers, S_cone_markers, LM_cone_markers)
+cell_types = c("rod", "s-cone", "l/m-cone")
+
+full_log <- data.frame(row.names = top_features)
+full_classnorm <- data.frame(row.names = top_features)
+
+
+for(i in 1:length(species_list)){
+  print(i)
+  species <- species_list[i]
+  obj <- LoadH5Seurat(paste0("/Users/vishruthdinesh/Downloads/Indv_Objects/", species, "_PR_Final.h5seurat"))
+  obj <- UpperCase_genes(obj)
+  obj$celltype <- tolower(obj$celltype)
+  DefaultAssay(obj) <- "RNA"
+
+  Idents(obj) <- "celltype"
+  obj <- subset(obj, idents = cell_types)
+  
+  obj@meta.data$cell_class0 = factor(obj@meta.data$celltype, levels = cell_types)
+  levels(obj@meta.data$cell_class0) = c("rod","s-cone", "l/m-cone")
+  Idents(obj) <- "cell_class0"
+  
+  # Calculate average expression for all genes by class
+  features_in <- top_features[top_features %in% rownames(obj)]
+
+  avg_exp <- AverageExpression(obj, features = features_in, assays = "RNA", slot = "counts")$RNA
+  colnames(avg_exp) <- paste0(species, "_", colnames(avg_exp))
+  
+  # Normalize
+  log_exp <- log1p(avg_exp)
+  class_norm <- avg_exp / apply(avg_exp, 1, max)
+  
+  # save data
+  full_log[features_in, colnames(log_exp)] <- log_exp[features_in,]
+  full_classnorm[features_in, colnames(class_norm)] <- class_norm[features_in,]
+}
+
+
+order <- c(paste0(species_list, "_rod"), paste0(species_list, "_s-cone"), paste0(species_list, "_l/m-cone"))
+file_table <- full_classnorm[, order]
+file_table$gene <- rownames(file_table)
+melt_table <- melt(file_table, id.vars = "gene")
+
+tick_min_pos_odd = -0.6
+tick_min_pos_even = -0.4
+custom_ticks = data.frame(cut = sort(unique(melt_table$gene)))
+n_discrete_x_values = nrow(custom_ticks)
+custom_ticks$tick_min_pos = ifelse(1:n_discrete_x_values %% 2 == 0, tick_min_pos_odd, tick_min_pos_even)
+
+ggplot(data = melt_table, aes(x=gene, y=variable, fill=value)) +
+    geom_tile(colour="white", size=0.2) +
+  guides(fill=guide_legend(title="Norm. Exp.")) + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1),
+          axis.text.y = element_blank(),
+          panel.border = element_blank(),
+          axis.title = element_blank()) +
+    scale_fill_gradient(low = "white",  high = "#447241", na.value = "gray70") + scale_x_discrete(limits = top_features) 
+dev.off()
+
+```
+
+```{r}
+#Figure 2B 
+OrthoObject_Fig <- OrthoObject2
+
+#Re-naming s-cone to l/m-cone and then renaming l/m-cone to cone; classifying all cone types as "cone"
+OrthoObject_Fig$celltype <- sub("s-cone", "l/m-cone", OrthoObject_Fig$celltype)
+OrthoObject_Fig$celltype <- sub("l/m-cone", "cone", OrthoObject_Fig$celltype)
+OrthoObject_Fig$celltype <- sub("double-cone", "cone", OrthoObject_Fig$celltype)
+
+#Subsetting integrated object so that each "species_class" has an approx. equal number of cells
+OrthoObject_Fig@meta.data$species_class <- paste0(OrthoObject_Fig@meta.data$species, "_", OrthoObject_Fig@meta.data$celltype)
+
+Idents(OrthoObject_Fig) = "species_class"
+OrthoObject_Fig_subset = subset(OrthoObject_Fig, cells = WhichCells(OrthoObject_Fig, downsample = 30, seed = 12345))
+
+
+avg_exp <- AverageExpression(OrthoObject_Fig_subset, group.by ="species_class", slot = "data" )
+cor_mat <- cor(avg_exp$integrated)
+species_list <- rev(c("chicken","lizard", "cow", "squirrel", "mouse", "marmoset", "human"))
+
+order <- c(paste0(species_list, "_rod"), paste0(species_list, "_cone"))
+file_table <- cor_mat[order, order]
+file_table
+file_table <- melt(file_table)
+
+ggplot(data = file_table, aes(x=Var1, y=Var2, fill=value)) + 
+    geom_tile() +
+    theme(axis.text.x = element_text(angle = 100, vjust = 0.5, hjust=1), 
+          axis.ticks = element_blank(), 
+          panel.border = element_blank(),
+          axis.title = element_blank()) +
+    scale_fill_viridis(option = "E", discrete = FALSE) +
+    coord_fixed()
+dev.off()
+```
+
+```{r}
+#Figure 2e
+
+library(pvclust)
+#object <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/FinalIntegratedObject.h5seurat")
+DefaultAssay(OrthoObject2) = "RNA"
+Idents(OrthoObject2) = "seurat_clusters"
+
+#object <- OrthoObject2[, OrthoObject2$species != "squirrel"]
+
+species.avg <- AverageExpression(object = OrthoObject2, assays = "RNA", group.by = "species")$RNA
+features <- rownames(species.avg)[rowSums(species.avg == 0) < 5]
+
+
+Rod <- subset(OrthoObject2, idents = "oRod")
+Idents(Rod) = "celltype"
+Idents(Rod) = "species"
+
+# Compute average gene expression matrix
+Rod.avg <- log1p(AverageExpression(object = Rod, assays = "RNA", slot = "counts")$RNA)
+Rod.avg <- Rod.avg[features,]
+
+spearman <- function(x) {
+    x <- as.matrix(x)
+    c = cor(x, method = "spearman")
+    res <- 1 - c
+    res <- as.dist(res)
+    attr(res, "method") <- "spearman"
+    return(res)
+}
+
+pv_cor_c <- pvclust(Rod.avg, method.hclust = "complete", method.dist = spearman, nboot = 100)
+pv_cor_a <- pvclust(Rod.avg, method.hclust = "average", method.dist = "correlation", nboot = 100)
+
+# Plot the tree
+plot(pv_cor_c, main = "All features, Spearman correlation distance, complete linkage")
+plot(pv_cor_a, main = "All features, Spearman correlation distance, average linkage")
+
+cor_mat <- cor(Rod.avg)
+diag(cor_mat) <- NA
+order <- colnames(Rod.avg)[pv_cor_a$hclust$order]
+file_table <- cor_mat[order, order]
+melt_table <- melt(file_table)
+
+ggplot(data = melt_table, aes(x=Var1, y=Var2, fill=value)) + 
+    geom_tile() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1), 
+          axis.ticks = element_blank(), 
+          panel.border = element_blank(),
+          axis.title = element_blank()) +
+    scale_fill_viridis(option = "E", discrete = FALSE) +
+    coord_fixed()
+```
+
+
