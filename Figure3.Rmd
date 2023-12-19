@@ -16,7 +16,7 @@ library(circlize)
 library(RColorBrewer)
 library(viridis)
 #library(ggsci)
-library(pvclust)
+#library(pvclust)
 #library(reshape2)
 #library(stats)
 ```
@@ -32,9 +32,11 @@ ph <- RunUMAP(ph, dims = 1:50)
 
 ph <- FindNeighbors(ph, dims = 1:10)
 ph <- FindClusters(ph, resolution = 0.5)
-##PRs (No Integration)
 DimPlot(ph, group.by = "species")
-
+##PRs (No Integration)
+pdf("/Users/vishruthdinesh/Downloads/Figures/Fig_3/3a_noint.pdf", w=6, h=6, useDingbats = FALSE)
+DimPlot(ph, group.by = "species")
+while (!is.null(dev.list()))  dev.off()
 ##PRs (Integrated)
 DimPlot(OrthoObject2, group.by = "species")
 ```
@@ -60,13 +62,14 @@ OrthoObject2$seurat_clusters <- sub("2", "oRod", OrthoObject2$seurat_clusters)
 
 #Viewing UMAP Plots
 DimPlot(OrthoObject2, group.by = "celltype")
-DimPlot(OrthoObject2, group.by = "seurat_clusters")
+p = DimPlot(OrthoObject2, group.by = "seurat_clusters")
+p + ggtitle("Photoreceptor OrthoTypes")
 ```
 
 ```{r}
 ##3d - Mouse Confusion Matrix
 type_table <- table(OrthoObject2@meta.data$species_class, OrthoObject2@meta.data$seurat_clusters)
-mouse_table <- type_table[grep("mar", rownames(type_table)),]
+mouse_table <- type_table
 
 species <- c("human", "marmoset", "mouse", "squirrel", "cow", "lizard", "chicken")
 
@@ -117,72 +120,35 @@ dev.off()
 ```
 
 ```{r}
-#Figure 3f
-
-type_table <- table(OrthoObject2@meta.data$species_class, OrthoObject2@meta.data$seurat_clusters)
-type_table = type_table[rowSums(type_table) > 20,]
-max_type <- colnames(type_table)[max.col(type_table)]
-
-types_plot <- which(max_type == "oRod")
-types_plot <- c(types_plot, which(max_type == "oS-cone"))
-types_plot <- rownames(type_table)[types_plot]
-
-OT_order <- c("oLM-cone, oS-cone, oRod")
-plot_table <- type_table[types_plot, OT_order]
-
-plot_table = t(scale(t(plot_table), center = FALSE, scale = rowSums(plot_table))) * 100
-df = melt(plot_table)
-
-colnames(df) = c("species", "OT", "mapping")
-df$species = factor(df$species, levels = rev(types_plot))
-df$seurat_clusters = factor(df$seurat_clusters, levels = OT_order)
-
-
-```
-
-```{r}
 #Updated Figure 3f
-#Merging Seurat Cluster 2 & 3
+#OrthoObject_Fig3 <- OrthoObject2
+OrthoObject_Fig3 <- OrthoObject2
+colors = c("#FFFFFF", "#E3E9FF", "#5177FF", "#002DC6", "#002191")
 Idents(OrthoObject_Fig3) = "seurat_clusters"
-#Renaming some of the cell-types
-OrthoObject_Fig3$celltype <- sub("Rod", "rod", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("ML_cone", "l/m-cone", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("MW_cone", "l/m-cone", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("S_cone", "s-cone", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("mlCone", "l/m-cone", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("SCone", "s-cone", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("sCones", "s-cone", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("l/m-cones", "l/m-cone", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("rods", "rod", OrthoObject_Fig3$celltype)
-OrthoObject_Fig3$celltype <- sub("double", "double-cone", OrthoObject_Fig3$celltype)
 
-#OrthoObject_Fig3 <- MergeClusters(OrthoObject_Fig3, idents = c(2,3), refactor = TRUE)
-#Renaming SeuratClusters to OrthoType identity
-OrthoObject_Fig3$seurat_clusters <- sub("0", "oLM-cone", OrthoObject_Fig3$seurat_clusters)
-OrthoObject_Fig3$seurat_clusters <- sub("1", "oS-cone", OrthoObject_Fig3$seurat_clusters)
-OrthoObject_Fig3$seurat_clusters <- sub("2", "oRod", OrthoObject_Fig3$seurat_clusters)
-#Cow_0, #Human0, Marmoset2, Mouse_rod, Squirrel_4, Lizard_11, Chicken1
 
 type_table <- table(OrthoObject_Fig3@meta.data$seuratcluster_species, OrthoObject_Fig3@meta.data$seurat_clusters)
-type_table <- type_table[seuratcluster_species_order,]
-type_table = type_table[rowSums(type_table) > 20,]
+#type_table <- type_table[seuratcluster_species_order,]
+#type_table = type_table[rowSums(type_table) > 20,]
 max_type <- colnames(type_table)[max.col(type_table)]
 
 
+
 types_plot <- which(max_type == "oRod")
+types_plot <- c(types_plot, which(max_type == "oLM-cone"))
 types_plot <- c(types_plot, which(max_type == "oS-cone"))
 types_plot <- rownames(type_table)[types_plot]
 
-OT_order <- c("oLM-cone", "oRod", "oS-cone")
-seuratcluster_species_order <- c("chicken_1", "cow_0","human_1","lizard_11","marmoset_2", "mouse_rod", "squirrel_4", "chicken_7", "lizard_8", "cow_5", "squirrel_3", "mouse_s-cone", "marmoset_5", "human_19")
+OT_order <- c( "oS-cone","oLM-cone", "oRod")
+seuratcluster_species_order <- c("human_1","marmoset_2", "mouse_rod", "squirrel_4","cow_0","lizard_11","chicken_1","human_3", "marmoset_0", "mouse_l/m-cone", "squirrel_0", "cow_3","lizard_1", "chicken_4","human_2", "marmoset_5", "mouse_s-cone",  "squirrel_3","cow_5", "lizard_8", "chicken_7")
 
-plot_table <- type_table[types_plot, OT_order]
+plot_table <- type_table[seuratcluster_species_order, OT_order]
 
 plot_table = t(scale(t(plot_table), center = FALSE, scale = rowSums(plot_table))) * 100
 df = melt(plot_table)
 colnames(df) = c("Species_Type", "OT", "mapping")
-df$Species_Type = factor(df$Species_Type, levels = rev(types_plot))
-df$OT = factor(df$OT, levels = OT_order)
+#df$Species_Type = factor(df$Species_Type, levels = rev(types_plot))
+#df$OT = factor(df$OT, levels = OT_order)
 
 
 ggplot(data = df, aes(x=OT, y=Species_Type, fill=mapping)) +
@@ -190,8 +156,9 @@ ggplot(data = df, aes(x=OT, y=Species_Type, fill=mapping)) +
   guides(fill=guide_legend(title="Mapping %")) + 
     theme(axis.text.x = element_text(angle = 90, vjust = 1),
           panel.border = element_blank(),
-          axis.title = element_blank()) +
-    scale_fill_gradient(low = "white",  high = "#A31C0A", na.value = "gray70") + scale_x_discrete(limits = levels(df$OT)) +coord_flip()
+          axis.title = element_blank(),
+          panel.background = element_blank()) +
+    scale_fill_gradientn(colors = colors, na.value = "gray70") + scale_x_discrete(limits = levels(df$OT)) +coord_flip()
 dev.off()
 ```
 

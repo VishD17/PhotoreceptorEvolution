@@ -108,7 +108,7 @@ avg_exp <- AverageExpression(OrthoObject_Fig_subset, group.by ="species_class", 
 cor_mat <- cor(avg_exp$integrated)
 species_list <- rev(c("chicken","lizard", "cow", "squirrel", "mouse", "marmoset", "human"))
 
-order <- c(paste0(species_list, "_rod"), paste0(species_list, "_cone"))
+order <- c(paste0(species_list, "_rod"), paste0(species_list, "_s-cone"),paste0(species_list, "_l/m-cone"))
 file_table <- cor_mat[order, order]
 file_table
 file_table <- melt(file_table)
