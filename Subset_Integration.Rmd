@@ -1,6 +1,12 @@
 ```{r}
+url <- "https://cran.r-project.org/src/contrib/Archive/Matrix/Matrix_1.6-1.tar.gz"
+install.packages(url, repos = NULL, Source = TRUE)
+sessionIn
+```
+
+```{r}
 library(Seurat)
-library(SeuratData)
+library(SeuratObject)
 library(SeuratDisk)
 
 #MOUSE
@@ -10,8 +16,7 @@ Convert("/Users/vishruthdinesh/Downloads/Mouse_PR_clean.h5ad", dest = "h5seurat"
 
 #Loading the h5seurat dataset
 mouse <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Mouse_PR_clean.h5seurat", meta.data = FALSE, misc = FALSE)
-#mouse[["RNA"]]$counts <- as.sparse(mouse[["RNA"]]$counts)
-#mouse[["RNA"]]$data <- as.sparse(mouse[["RNA"]]$data)
+
 
 #Adding metadata to mouse dataset 
 library(rhdf5)
@@ -33,11 +38,17 @@ mouse <- RunPCA(mouse)
 mouse <- RunUMAP(mouse, dims = 1:50)
 DimPlot(mouse)
 
+
 mouse <- FindNeighbors(mouse, dims = 1:10)
 mouse <- FindClusters(mouse, resolution = 0.5)
 DimPlot(mouse, reduction = "umap")
 FeaturePlot(mouse, features = c("RHO", "ARR3", "CCDC136", "OPN1MW"))
 Idents(mouse) = "celltype"
+mouse$seurat_clusters <- sub("0", "l/m-cone", mouse$seurat_clusters)
+mouse$seurat_clusters <- sub("1", "s-cone", mouse$seurat_clusters)
+mouse$seurat_clusters <- sub("2", "l/m-cone", mouse$seurat_clusters)
+mouse$seurat_clusters <- sub("3", "rod", mouse$seurat_clusters)
+mouse$celltype <- mouse$seurat_clusters
 
 mouse_de_genes <- c(mouse_rod_list, mouse_scone_list, mouse_lmcone_list)
 mouse <- mouse[mouse_de_genes,]
@@ -45,8 +56,9 @@ mouse <- mouse[mouse_de_genes,]
 
 
 #Opening and Pre-processing Marmoset
-#Convert('/Users/vishruthdinesh/Downloads/Marmoset_PR_clean_noint.h5ad', dest = "h5seurat", overwrite = TRUE)
+Convert('/Users/vishruthdinesh/Downloads/Marmoset_PR_clean_noint.h5ad', dest = "h5seurat", overwrite = TRUE)
 marmoset <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Marmoset_PR_clean_noint.h5seurat", meta.data = FALSE, misc = FALSE)
+
 
 #Loading marmoset metadata
 marmoset_meta <- h5read("/Users/vishruthdinesh/Downloads/Marmoset_PR_clean_noint.h5ad", "/obs/leiden_duplicate")
@@ -62,12 +74,14 @@ FeaturePlot(marmoset, features = c("batch"))
 
 marmoset_int = ClusterSeurat(marmoset, integrate.by = "batch")
 DimPlot(marmoset_int, group.by = "celltype")
+
+#DimPlot(marmoset_subset, reduction = "umap")
 Idents(marmoset_int) = "celltype"
 marmoset_de_genes <- c(marmoset_rod_list, marmoset_scone_list, marmoset_lmcone_list)
-int_marmoset <- int_marmoset[marmoset_de_genes,]
+int_marmoset <- marmoset_int[marmoset_de_genes,]
 
 #Opening and Pre-processing Chicken
-#Convert('/Users/vishruthdinesh/Downloads/Chicken_PR_clean1.h5ad', dest = "h5seurat", overwrite = TRUE)
+Convert('/Users/vishruthdinesh/Downloads/Chicken_PR_clean1.h5ad', dest = "h5seurat", overwrite = TRUE)
 
 chicken <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Chicken_PR_clean1.h5seurat", meta.data = FALSE, misc = FALSE)
 
@@ -103,6 +117,7 @@ chicken <- chicken[chicken_de_genes,]
 
 lizard <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Lizard_PR_clean.h5seurat", meta.data = FALSE, misc = FALSE)
 
+
 #Loading metadata
 lizard_meta <- h5read("/Users/vishruthdinesh/Downloads/Lizard_PR_clean.h5ad", "/obs/leiden_duplicate")
 lizard_batch <- h5read("/Users/vishruthdinesh/Downloads/Lizard_PR_clean.h5ad", "/obs/batch")
@@ -133,9 +148,11 @@ lizard <- lizard[lizard_de_genes,]
 
 #Cow
 cow <- readRDS("/Users/vishruthdinesh/Downloads/Cow_PR_v1.rds")
+#cow <- UpdateSeuratObject(cow)
 
 DefaultAssay(cow)<-"RNA"
-#cow[["integrated"]] <- "NULL"
+cow[["integrated"]] <- "NULL"
+
 #Pre-processing
 cow <- NormalizeData(cow)
 cow <- FindVariableFeatures(cow, nfeatures = 2000)
@@ -150,13 +167,16 @@ cow <- FindClusters(cow, resolution = 0.5)
 DimPlot(cow, reduction = "umap")
 cow$celltype <- cow$type
 Idents(cow) = "celltype"
+cow$celltype <- sub("Rod", "rod", cow$celltype)
+cow$celltype <- sub("ML_cone", "l/m-cone", cow$celltype)
+cow$celltype <- sub("S_cone", "s-cone", cow$celltype)
 cow_de_genes <- c(cow_rod_list, cow_scone_list, cow_lmcone_list)
 cow <- cow[cow_de_genes,]
 
 #Squirrel
 #squirrel <- readRDS("/Users/vishruthdinesh/Downloads/Squirrel_PR_int_v2.rds")
 #DefaultAssay(squirrel)<-"RNA"
-#Convert("/Users/vishruthdinesh/Downloads/Squirrel_PR_clean.h5ad", dest = "h5seurat", overwrite = TRUE)
+Convert("/Users/vishruthdinesh/Downloads/Squirrel_PR_clean.h5ad", dest = "h5seurat", overwrite = TRUE)
 squirrel <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Squirrel_PR_clean.h5seurat", meta.data = FALSE, misc = FALSE)
 squirrel_meta <- h5read("/Users/vishruthdinesh/Downloads/Squirrel_PR_clean.h5ad", "/obs/leiden_duplicate")
 
@@ -187,10 +207,10 @@ squirrel <- squirrel[squirrel_de_genes,]
 human <- readRDS("/Users/vishruthdinesh/Downloads/Human_PR.rds")
 DefaultAssay(human)<-"RNA"
 human[["integrated"]] <- "NULL"
-SaveH5Seurat(human, filename = "/Users/vishruthdinesh/Downloads/Human_PR1.h5Seurat")
-Convert("/Users/vishruthdinesh/Downloads/Human_PR1.h5Seurat", dest = "h5ad")
+#SaveH5Seurat(human, filename = "/Users/vishruthdinesh/Downloads/Human_PR1.h5Seurat")
+#Convert("/Users/vishruthdinesh/Downloads/Human_PR1.h5Seurat", dest = "h5ad")
 
-Convert("/Users/vishruthdinesh/Downloads/Human_PR_clean.h5ad", dest = "h5seurat", overwrite = TRUE)
+#Convert("/Users/vishruthdinesh/Downloads/Human_PR_clean.h5ad", dest = "h5seurat", overwrite = TRUE)
 
 
 human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "BP"))
@@ -200,13 +220,28 @@ human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "MG"))
 human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "Other"))
 human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "RGC"))
 DimPlot(human, group.by = "cell_class")
+
 FeaturePlot(human, features = c("CCDC136", "THRB", "OPN1LW"))
-Idents(human) = "annotated_class"
+human$celltype <- human$annotated_class
+Idents(human) = "celltype"
+human$celltype <- sub("Rods", "rod", human$celltype)
+human$celltype <- sub("mlCones", "l/m-cone", human$celltype)
+human$celltype <- sub("sCones", "s-cone", human$celltype)
+human <- NormalizeData(human)
+human <- FindVariableFeatures(human, nfeatures = 2000)
+human <- ScaleData(human)
+human <- RunPCA(human)
+human <- RunUMAP(human, dims = 1:50)
+DimPlot(human)
+
+human <- FindNeighbors(human, dims = 1:10)
+human <- FindClusters(human, resolution = 0.5)
+DimPlot(human, reduction = "umap")
 #human_subset = subset(human, cells = WhichCells(human, downsample = 200, seed = 12345))
 human_de_genes <- c(human_rod_list, human_scone_list, human_lmcone_list)
 human <- human[human_de_genes,]
 FeaturePlot(human_subset, features = c("OPN1SW", "THRB", "RHO"))
-
+#SaveH5Seurat(human, "/Users/vishruthdinesh/Downloads/Indv_Objects/Human_PR_Final.h5Seurat")
 ```
 
 ```{r}
@@ -214,8 +249,8 @@ FeaturePlot(human_subset, features = c("OPN1SW", "THRB", "RHO"))
 merge_1_2_3_4 = read.csv('/Users/vishruthdinesh/Downloads/martMergeRefHuman_cleaned_file.csv')
 
 mouse_subset = subset(mouse, cells = WhichCells(mouse, downsample = 82, seed = 12345))
-marmoset_subset = subset(int_marmoset, cells = WhichCells(int_marmoset, downsample = 140, seed = 12345))
-chicken_subset = subset(chicken, cells = WhichCells(chicken, downsample = 40, seed = 12345))
+marmoset_subset = subset(int_marmoset, cells = WhichCells(marmoset_int, downsample = 140, seed = 12345))
+chicken_subset = subset(chicken, cells = WhichCells(chicken, downsample = 50, seed = 12345))
 lizard_subset = subset(lizard, cells = WhichCells(lizard, downsample = 120, seed = 12345))
 cow_subset = subset(cow, cells = WhichCells(cow, downsample = 150, seed = 12345))
 squirrel_subset = subset(squirrel, cells = WhichCells(squirrel, downsample = 250, seed = 12345))
@@ -254,7 +289,7 @@ squirrel_genes <- oneToOneMartMouMarChiLiz$Squirrel.gene.name
 #zebrafish_genes <- oneToOneMartMouMarChiLiz$Zebrafish.gene.name
 
 #Creating a common list of genes btwn. the two species
-gene_lists <- list(cow_genes, squirrel_genes)
+gene_lists <- list(cow_genes, squirrel_genes, marmoset_genes, lizard_genes, mouse_genes, chicken_genes)
 
 
 additional_genes <- c("OPN1SW", "OPN1LW", "CCDC136", "OPN2SW", "OPN1MW", "PTPRD", "SLC4A7", "CDH20", "SAG")
@@ -287,72 +322,7 @@ ortho_human$celltype <- ortho_human$annotated_class
 #ortho_zfish$species = "zfish"
 ```
 
-```{r}
-#Merging the Datasets
-ph <- merge(ortho_cow, y = c(ortho_squirrel), add.cell.ids = c("cow","squirrel"), project = "merge")
-table(ph$species)
-```
 
-
-```{r}
-#Integrating using ClusterSeruat function 
-cow$species <- "cow"
-squirrel$species <- "squirrel"
-OrthoObject2 = ClusterSeurat(ph, nfeatures = 2000, numPCs = 15, integrate.by = "species", cluster_resolution = 0.8)
-```
-
-```{r}
-#Renaming some of the cell-types
-OrthoObject2$celltype <- sub("Rod", "rod", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("ML_cone", "l/m-cone", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("MW_cone", "l/m-cone", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("S_cone", "s-cone", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("mlCone", "l/m-cone", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("SCone", "s-cone", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("sCones", "s-cone", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("l/m-cones", "l/m-cone", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("rods", "rod", OrthoObject2$celltype)
-OrthoObject2$celltype <- sub("double", "double-cone", OrthoObject2$celltype)
-```
-
-
-```{r}
-#UMAP Plots
-celltype_colors <- c("rod" = "limegreen", "s-cone" = "cornflowerblue", "l/m-cone" = "brown1", "double-cone" = "orange")
-seurat_colors <- c("0" = "brown1", "1" = "cornflowerblue", "2" = "limegreen", "3" = "limegreen")
-DimPlot(OrthoObject2, group.by = "celltype")
-DimPlot(OrthoObject2, group.by = "species")
-DimPlot(OrthoObject2, reduction = "umap")
-DimPlot(OrthoObject2, split.by = "species", group.by = "celltype")
-table(OrthoObject2$celltype, OrthoObject2$seurat_clusters)
-table(OrthoObject2$species)
-```
-
-```{r}
-
-```
-
-
-```{r}
-#LM Cone
-lmcone_markers_all <- FindMarkers(OrthoObject2, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
-head(lmcone_markers_all, n = 20)
-DimPlot(OrthoObject2, split.by = "species", group.by = "celltype")
-```
-
-
-```{r}
-#seeing how 'ph' looks
-ph <- NormalizeData(ph)
-ph <- FindVariableFeatures(ph, nfeatures = 2000)
-ph <- ScaleData(ph)
-ph <- RunPCA(ph)
-ph <- RunUMAP(ph, dims = 1:50)
-DimPlot(ph)
-ph <- FindNeighbors(ph, dims = 1:10)
-ph <- FindClusters(ph, resolution = 0.5)
-DimPlot(ph, group.by = "species")
-```
 
 ```{r}
 Idents(OrthoObject2) = "seurat_clusters"
@@ -369,17 +339,17 @@ FeaturePlot(OrthoObject2, features = c("OPN1SW", "CCDC136"), cols = c('V0' = 'gr
 #Marmoset
 
 #Rod
-rod_markers_marmoset <- FindMarkers(int_marmoset, ident.1 = "rod", ident.2 = NULL, only.pos = TRUE)
+rod_markers_marmoset <- FindMarkers(marmoset_int, ident.1 = "rod", ident.2 = NULL, only.pos = TRUE)
 head(rod_markers_marmoset, n = 20)
 marmoset_rod_list <- rownames(rod_markers_marmoset)
 
 #S-cone
-scone_markers_marmoset <- FindMarkers(int_marmoset, ident.1 = "s-cone", ident.2 = NULL, only.pos = TRUE)
+scone_markers_marmoset <- FindMarkers(marmoset_int, ident.1 = "s-cone", ident.2 = NULL, only.pos = TRUE)
 head(scone_markers_marmoset, n = 20)
 marmoset_scone_list <- rownames(scone_markers_marmoset)
 
 #LM Cone
-lmcone_markers_marmoset <- FindMarkers(int_marmoset, ident.1 = "l/m-cone", ident.2 = NULL, only.pos = TRUE)
+lmcone_markers_marmoset <- FindMarkers(marmoset_int, ident.1 = "l/m-cone", ident.2 = NULL, only.pos = TRUE)
 head(lmcone_markers_marmoset, n = 20)
 marmoset_lmcone_list <- rownames(lmcone_markers_marmoset)
 
@@ -413,7 +383,7 @@ Idents(chicken) = "seurat_clusters"
 FeaturePlot(chicken, features = c("GRIK3", "CALB1"), cols = c('V0' = 'grey', 'V6' = 'purple', 'V8' = 'purple'),blend = TRUE)
 
 #Rod
-Idents(chicken) = "celltype"
+Idents(hicken_pre) = "celltype"
 rod_markers_chicken <- FindMarkers(chicken, ident.1 = "rod", ident.2 = NULL, only.pos = TRUE)
 head(rod_markers_chicken, n = 20)
 chicken_rod_list <- rownames(rod_markers_chicken)
@@ -432,7 +402,7 @@ chicken_lmcone_list <- rownames(lmcone_markers_chicken)
 double_markers_chicken <- FindMarkers(chicken, ident.1 = "double", ident.2 = NULL, only.pos = TRUE)
 head(double_markers_chicken, n = 20)
 chicken_double_list <- rownames(double_markers_chicken)
-chicken_double_list <- chicken_double_list[1:20]
+chicken_double_list <- chicken_double_list
 
 #MOUSE
 mouse <- FindClusters(mouse, resolution = 0.1)
@@ -441,7 +411,7 @@ Idents(mouse) = "celltype"
 FeaturePlot(mouse, features = c("OPN1SW"))
 
 #Rod
-rod_markers_mouse <- FindMarkers(mouse, ident.1 = "rod", ident.2 = c("s-cone", "l/m-cone"))
+rod_markers_mouse <- FindMarkers(mouse, ident.1 = "rod", ident.2 = NULL, only.pos = TRUE)
 head(rod_markers_mouse, n = 20)
 mouse_rod_list <- rownames(rod_markers_mouse)
 
