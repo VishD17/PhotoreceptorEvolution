@@ -1,10 +1,4 @@
 ```{r}
-url <- "https://cran.r-project.org/src/contrib/Archive/Matrix/Matrix_1.6-1.tar.gz"
-install.packages(url, repos = NULL, Source = TRUE)
-sessionIn
-```
-
-```{r}
 library(Seurat)
 library(SeuratObject)
 library(SeuratDisk)
