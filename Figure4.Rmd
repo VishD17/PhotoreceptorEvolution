@@ -6,12 +6,15 @@ OrthoObject4 = ScaleData(OrthoObject4, features = rownames(OrthoObject4))
 OrthoObject4$dendro.order = factor(OrthoObject4$seurat_clusters)
 table(OrthoObject4$dendro.order)
 DefaultAssay(OrthoObject4) = "RNA"
+OrthoObject4$seurat_clusters <- sub("oS-cone", "oCone", OrthoObject4$seurat_clusters)
+OrthoObject4$seurat_clusters <- sub("oLM-cone", "oCone", OrthoObject4$seurat_clusters)
+
 
 ```
 
 #Dividing Into Phylogenetic Clades + Markers
 ```{r}
-logFC.threshold = 0.75
+logFC.threshold = 0.25
 padj.threshold = 0.05
 
 # Primate DEGs
@@ -32,50 +35,111 @@ LizChickPRMarkers = wilcoxauc(LizChickPR, 'seurat_clusters')
 ```
 # Extract top genes
 ```{r}
+Primate_LM_subset = subset(PrimatePRMarkers, group == "oLM-cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+Primate_S_subset = subset(PrimatePRMarkers, group == "oS-cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+Primate_Rod = subset(PrimatePRMarkers, group == "oRod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+PrimateDEGs <- rbind(Primate_LM_subset, Primate_S_subset, Primate_Rod)
 
-PrimateDEGs = lapply((levels(OrthoObject4$dendro.order)), function(cluster){
-  subset = subset(PrimatePRMarkers, group == as.numeric(cluster) & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj) 
-  return(subset)
-})
 
-RodentDEGs = lapply((levels(OrthoObject4$dendro.order)), function(cluster){
-  subset = subset(RodentPRMarkers, group == as.numeric(cluster) & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj) 
-  return(subset)
-})
 
-LaurasiaDEGs = lapply((levels(OrthoObject4$dendro.order)), function(cluster){
-  subset = subset(LaurasiaPRMarkers, group == as.numeric(cluster) & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj) 
-  return(subset)
-})
+Rodent_LM_subset = subset(RodentPRMarkers, group == "oLM-cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+Rodent_S_subset = subset(RodentPRMarkers, group == "oS-cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+Rodent_Rod = subset(RodentPRMarkers, group == "oRod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+RodentDEGs <- rbind(Rodent_LM_subset, Rodent_S_subset, Rodent_Rod)
 
-LizChickDEGs = lapply((levels(OrthoObject4$dendro.order)), function(cluster){
-  subset = subset(LizChickPRMarkers, group == as.numeric(cluster) & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj) 
-  return(subset)
-})
+
+Laurasia_LM_subset = subset(LaurasiaPRMarkers, group == "oLM-cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+Laurasia_S_subset = subset(LaurasiaPRMarkers, group == "oS-cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+Laurasia_Rod = subset(LaurasiaPRMarkers, group == "oRod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+LaurasiaDEGs <- rbind(Laurasia_LM_subset, Laurasia_S_subset, Laurasia_Rod)
+
+LizChick_LM_subset = subset(LizChickPRMarkers, group == "oLM-cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+LizChick_S_subset = subset(LizChickPRMarkers, group == "oS-cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+LizChick_Rod = subset(LizChickPRMarkers, group == "oRod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+LizChickDEGs <- rbind(LizChick_LM_subset, LizChick_S_subset, LizChick_Rod)
 
 # Conserved and species-enriched genes
-sharedDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
-  intersection = Reduce(intersect, list(PrimateDEGs[[element]]$feature, RodentDEGs[[element]]$feature))
-  })
+# Flatten the lists into vectors
+PrimateDEGs_flat <- unlist(PrimateDEGs)
+RodentDEGs_flat <- unlist(RodentDEGs)
+LaurasiaDEGs_flat <- unlist(LaurasiaDEGs)
+LizChickDEGs_flat <- unlist(LizChickDEGs)
+
+# Combine the vectors into a list
+shared <- list(PrimateDEGs_flat, RodentDEGs_flat)
+
+# Perform intersection on the flattened vectors
+sharedDEGs <- Reduce(intersect, shared)
+
 
 primateSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
-  speciesDEGs = PrimateDEGs[[element]]$feature
-  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs[[element]]$feature, LaurasiaDEGs[[element]]$feature)])
+  speciesDEGs = PrimateDEGs$feature
+  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs$feature, LaurasiaDEGs$feature)])
   })
+primateSpecificDEGs = primateSpecificDEGs[[1]]
 
 rodentSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
-  speciesDEGs = RodentDEGs[[element]]$feature
-  return(speciesDEGs[!speciesDEGs %in% c(PrimateDEGs[[element]]$feature, LaurasiaDEGs[[element]]$feature)])
+  speciesDEGs = RodentDEGs$feature
+  return(speciesDEGs[!speciesDEGs %in% c(PrimateDEGs$feature, LaurasiaDEGs$feature)])
   })
+rodentSpecificDEGs = rodentSpecificDEGs[[1]]
 
 laurasiaSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
-  speciesDEGs = LaurasiaDEGs[[element]]$feature
-  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs[[element]]$feature, PrimateDEGs[[element]]$feature)])
+  speciesDEGs = LaurasiaDEGs$feature
+  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs$feature, PrimateDEGs$feature)])
   })
+laurasiaSpecificDEGs = laurasiaSpecificDEGs[[1]]
 
 message("# of shared genes found: ", length(unique(sharedDEGs %>% unlist)))
 message("# of shared genes found: ", length(unique(primateSpecificDEGs %>% unlist)))
 message("# of shared genes found: ", length(unique(rodentSpecificDEGs %>% unlist)))
 message("# of shared genes found: ", length(unique(laurasiaSpecificDEGs %>% unlist)))
+```
+
+```{r}
+new_order <- c("oS-cone", "oLM-cone", "oRod")
+OrthoObject4$dendro.order <- factor(OrthoObject4$dendro.order, levels = new_order)
+PrimateSubset = subset(PrimatePR, cells = WhichCells(PrimatePR, downsample = 50, seed = 12345))
+RodentSubset = subset(RodentPR, cells = WhichCells(RodentPR, downsample = 50, seed = 12345))
+LaurasiaSubset = subset(LaurasiaPR, cells = WhichCells(LaurasiaPR, downsample = 50, seed = 12345))
+
+panel1 = ConservedEnrichedHeatmap(PrimateSubset, sharedDEGs, primateSpecificDEGs, rodentSpecificDEGs, laurasiaSpecificDEGs,
+                                  group.by = "dendro.order", group.bar = FALSE,  draw.lines = TRUE)
+panel2 = ConservedEnrichedHeatmap(RodentSubset, sharedDEGs, primateSpecificDEGs, rodentSpecificDEGs, laurasiaSpecificDEGs,
+                                  group.by = "dendro.order", group.bar = FALSE,  draw.lines = TRUE)
+panel3 = ConservedEnrichedHeatmap(LaurasiaSubset, sharedDEGs, primateSpecificDEGs, rodentSpecificDEGs, laurasiaSpecificDEGs,
+                                  group.by = "dendro.order", group.bar = FALSE,  draw.lines = TRUE)
+
+full_panel =  plot_grid(panel1, 
+                        panel2, 
+                        panel3, 
+                        nrow = 3)
+
+full_panel
+
+```
+
+```{r}
+panel1 = ConservedEnrichedHeatmap2(PrimateSubset, RodentSubset, LaurasiaSubset, sharedDEGs,
+                                   group.by = "dendro.order", group.bar = FALSE, draw.lines = FALSE, color = "magenta")
+panel2 = ConservedEnrichedHeatmap2(PrimateSubset, RodentSubset, LaurasiaSubset, primateSpecificDEGs,
+                                   group.by = "dendro.order", group.bar = FALSE, draw.lines = FALSE, color = "blue")
+panel3 = ConservedEnrichedHeatmap2(PrimateSubset, RodentSubset, LaurasiaSubset, rodentSpecificDEGs,
+                                   group.by = "dendro.order", group.bar = FALSE, draw.lines = FALSE, color = "turquoise3")
+panel4 = ConservedEnrichedHeatmap2(PrimateSubset, RodentSubset, LaurasiaSubset, laurasiaSpecificDEGs,
+                                   group.by = "dendro.order", group.bar = FALSE, draw.lines = FALSE, color = "orange")
+
+full_panel =  plot_grid(panel1,
+                        panel2,
+                        panel3,
+                        panel4,
+                        nrow = 4)
+
+full_panel
+```
+
+
+```{r}
+sharedDEGs
 ```
 
