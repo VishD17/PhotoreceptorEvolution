@@ -10,8 +10,11 @@ OrthoObject4$celltype <- sub("s-cone", "Cone", OrthoObject4$celltype)
 OrthoObject4$celltype <- sub("l/m-cone", "Cone", OrthoObject4$celltype)
 OrthoObject4$celltype <- sub("double-cone", "Cone", OrthoObject4$celltype)
 OrthoObject4$celltype <- sub("rod", "Rod", OrthoObject4$celltype)
+#Idents(OrthoObject4) = "celltype"
+#OrthoObject4 = subset(OrthoObject4, cells = WhichCells(OrthoObject4, downsample = 300, seed = 12345))
 OrthoObject4$dendro.order = factor(OrthoObject4$celltype)
 table(OrthoObject4$dendro.order)
+
 ```
 
 #Dividing Into Phylogenetic Clades + Markers
@@ -50,16 +53,20 @@ Primate_Rod_subset = subset(PrimatePRMarkers, group == "Rod" & logFC > logFC.thr
 PrimateDEGs <- rbind(Primate_Cone_subset, Primate_Rod_subset)
 
 
-
-Rodent_Cone_subset = subset(RodentPRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)%>% 
-  head(150)
+Rodent_Cone_subset = subset(RodentPRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+Rodent_Cone_subset1 = subset(RodentPRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)%>% 
+  head(75)
 Rodent_Rod_subset = subset(RodentPRMarkers, group == "Rod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
 RodentDEGs <- rbind(Rodent_Cone_subset, Rodent_Rod_subset)
+RodentDEGs_Vis <- rbind(Rodent_Cone_subset1, Rodent_Rod_subset)
 
 
-Laurasia_Cone_subset = subset(LaurasiaPRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)%>% head(150)
+
+Laurasia_Cone_subset1 = subset(LaurasiaPRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)%>% head(100)
+Laurasia_Cone_subset = subset(LaurasiaPRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
 Laurasia_Rod_subset = subset(LaurasiaPRMarkers, group == "Rod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
 LaurasiaDEGs <- rbind(Laurasia_Cone_subset,  Laurasia_Rod_subset)
+LaurasiaDEGs_Vis <- rbind(Laurasia_Cone_subset1,  Laurasia_Rod_subset)
 
 #LizChick_Cone_subset = subset(LizChickPRMarkers, group == "oCone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
 #LizChick_Rod = subset(LizChickPRMarkers, group == "oRod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
@@ -81,19 +88,19 @@ sharedDEGs <- Reduce(intersect, shared)
 
 primateSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
   speciesDEGs = PrimateDEGs$feature
-  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs$feature, LaurasiaDEGs$feature)])
+  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs_Vis$feature, LaurasiaDEGs_Vis$feature)])
   })
 primateSpecificDEGs = primateSpecificDEGs[[1]]
 
 rodentSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
-  speciesDEGs = RodentDEGs$feature
-  return(speciesDEGs[!speciesDEGs %in% c(PrimateDEGs$feature, LaurasiaDEGs$feature)])
+  speciesDEGs = RodentDEGs_Vis$feature
+  return(speciesDEGs[!speciesDEGs %in% c(PrimateDEGs$feature, LaurasiaDEGs_Vis$feature)])
   })
 rodentSpecificDEGs = rodentSpecificDEGs[[1]]
 
 laurasiaSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
-  speciesDEGs = LaurasiaDEGs$feature
-  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs$feature, PrimateDEGs$feature)])
+  speciesDEGs = LaurasiaDEGs_Vis$feature
+  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs_Vis$feature, PrimateDEGs$feature)])
   })
 laurasiaSpecificDEGs = laurasiaSpecificDEGs[[1]]
 
@@ -110,10 +117,10 @@ message("# of shared genes found: ", length(unique(laurasiaSpecificDEGs %>% unli
 ```{r}
 #new_order <- c("oCone", "oRod")
 #OrthoObject4$dendro.order <- factor(OrthoObject4$seurat_clusters)
-PrimateSubset = subset(PrimatePR, cells = WhichCells(PrimatePR, downsample = 500, seed = 12345))
-RodentSubset = subset(RodentPR, cells = WhichCells(RodentPR, downsample = 500, seed = 12345))
+PrimateSubset = subset(PrimatePR, cells = WhichCells(PrimatePR, downsample = 100, seed = 12345))
+RodentSubset = subset(RodentPR, cells = WhichCells(RodentPR, downsample = 100, seed = 12345))
 RodentSubset = ScaleData(RodentPR, features = rownames(RodentPR))
-LaurasiaSubset = subset(LaurasiaPR, cells = WhichCells(LaurasiaPR, downsample = 200, seed = 12345))
+LaurasiaSubset = subset(LaurasiaPR, cells = WhichCells(LaurasiaPR, downsample = 100, seed = 12345))
 
 panel1 = ConservedEnrichedHeatmap(PrimateSubset, sharedDEGs, primateSpecificDEGs, rodentSpecificDEGs, laurasiaSpecificDEGs,
                                   group.by = "dendro.order", group.bar = FALSE,  draw.lines = FALSE)
@@ -150,14 +157,83 @@ full_panel =  plot_grid(panel1,
 full_panel
 ```
 
-##Venn Diagrams
+##Figure 4B - Venn Diagrams
 ```{r}
-types.use = rev(c("Cone", "Rod"))
+#types.use = rev(c("Cone", "Rod"))
+#OrthoObject4$seurat_clusters <- sub("oCone", "Cone", OrthoObject4$seurat_clusters)
+#OrthoObject4$seurat_clusters <- sub("oRod", "Rod", OrthoObject4$seurat_clusters)
 
 # Subset to known types
-metadata = Metadata(OrthoObject4, feature.1 = "seurat_clusters", feature.2 = "lit_type")
-metadata.ordered = metadata[metadata$lit_type %in% types.use,] %>% arrange(factor(lit_type, levels = types.use))
+metadata = Metadata(OrthoObject4, feature.1 = "seurat_clusters", feature.2 = "celltype")
+metadata.ordered = metadata[metadata$celltype %in% types.use,] %>% arrange(factor(celltype, levels = types.use))
 types.clusters = metadata.ordered$seurat_clusters
-names(types.clusters) = paste0(metadata.ordered$seurat_clusters, "_", metadata.ordered$lit_type)
+
+types.clusters = "Rod"
 ```
+
+```{r}
+
+vd_list = lapply(seq_along(types.clusters), function(index){
+  cluster = types.clusters[[index]]
+  venn.diagram(PrimateDEGs[[cluster]]$feature, RodentDEGs[[cluster]]$feature, LaurasiaDEGs[[cluster]]$feature)
+})
+
+vd_list
+
+par(mfrow = c(1,2))
+plot(c(1,2,3), c(1,2,4))
+plot(c(1,2,3), c(1,2,4))
+```
+
+```{r}
+
+# Extract DEGs features from each dataset
+primate_genes <- PrimateDEGs$feature
+rodent_genes <- RodentDEGs$feature
+laurasia_genes <- LaurasiaDEGs$feature
+
+# Create a Venn diagram
+venn_plot <- venn.diagram(
+  x = list(Primate = primate_genes, Rodent = rodent_genes, Laurasia = laurasia_genes),
+  category.names = c("Primate", "Rodent", "Laurasia"),
+  filename = NULL,
+  output = TRUE
+)
+grid.draw(venn_plot)
+```
+
+```{r}
+# Split PrimateDEGs based on cell types 
+
+
+primate_rod_genes <- PrimateDEGs[PrimateDEGs$group == "Rod", "feature"]
+primate_cone_genes <- PrimateDEGs[PrimateDEGs$group == "Cone", "feature"]
+rodent_rod_genes <- RodentDEGs[RodentDEGs$group == "Rod", "feature"]
+rodent_cone_genes <- RodentDEGs[RodentDEGs$group == "Cone", "feature"]
+laurasia_rod_genes <- LaurasiaDEGs[LaurasiaDEGs$group == "Rod", "feature"]
+laurasia_cone_genes <- LaurasiaDEGs[LaurasiaDEGs$group == "Cone", "feature"]
+
+
+# Create Venn diagrams for each cell type
+venn_rod <- venn.diagram(
+  x = list(Primate = primate_rod_genes, Rodent = rodent_rod_genes, Laurasia = laurasia_rod_genes),
+  category.names = c("Primate", "Rodent", "Laurasia"),
+  filename = NULL,
+  output = TRUE
+)
+
+venn_cone <- venn.diagram(
+  x = list(Primate = primate_cone_genes, Rodent = rodent_cone_genes, Laurasia = laurasia_cone_genes),
+  category.names = c("Primate", "Rodent", "Laurasia"),
+  filename = NULL,
+  output = TRUE
+)
+
+
+grid.draw(venn_rod)
+
+```
+
+
+
 
