@@ -22,6 +22,8 @@ table(OrthoObject4$dendro.order)
 logFC.threshold = 0.5
 padj.threshold = 0.05
 
+library(presto)
+
 # Primate DEGs
 PrimatePR = subset(OrthoObject4, species %in% c("marmoset", "human"))
 
@@ -47,6 +49,7 @@ LizChickPRMarkers = wilcoxauc(LizChickPR, 'celltype')
 ```
 # Extract top genes
 ```{r}
+library("dplyr")
 Primate_Cone_subset = subset(PrimatePRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
 Primate_Rod_subset = subset(PrimatePRMarkers, group == "Rod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
 
@@ -115,6 +118,8 @@ message("# of shared genes found: ", length(unique(laurasiaSpecificDEGs %>% unli
 
 
 ```{r}
+library(ggplot2)
+library('cowplot')
 #new_order <- c("oCone", "oRod")
 #OrthoObject4$dendro.order <- factor(OrthoObject4$seurat_clusters)
 PrimateSubset = subset(PrimatePR, cells = WhichCells(PrimatePR, downsample = 100, seed = 12345))
@@ -160,7 +165,8 @@ full_panel
 ##Figure 4B - Venn Diagrams
 ```{r}
 # Split PrimateDEGs based on cell types 
-
+library(VennDiagram)
+library(eulerr)
 
 primate_rod_genes <- PrimateDEGs[PrimateDEGs$group == "Rod", "feature"]
 primate_cone_genes <- PrimateDEGs[PrimateDEGs$group == "Cone", "feature"]
@@ -233,6 +239,7 @@ GO.results = lapply(geneLists, function(geneList){
 ```
 
 ```{r}
+library(ggplot2)
 GO.plots = lapply(GO.results, function(ego) dotplot(ego, showCategory=10) + scale_fill_gradient(low = "magenta", high = "turquoise"))
 
 #ggarrange(plotlist = GO.plots, nrow = 2, ncol =2, labels = names(geneLists), hjust = 0, align = "v")
