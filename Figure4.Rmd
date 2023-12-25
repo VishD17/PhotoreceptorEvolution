@@ -248,6 +248,134 @@ laurasia_plot
 ```
 
 
+#Figure 4D Preparation
+```{r}
+
+#Loading Required Packages
+library(org.Hs.eg.db)
+hs <- org.Hs.eg.db
+
+PrimateDEGs_feature = PrimateDEGs$feature
+RodentDEGs_feature = RodentDEGs$feature
+LaurasiaDEGs_feature = LaurasiaDEGs$feature
+
+#Convert Gene Symbols to Entrez Gene
+my.symbols <- sharedDEGs
+my.symbols_2 <- PrimateDEGs_feature
+my.symbols_3 <- RodentDEGs_feature
+my.symbols_4 <- LaurasiaDEGs_feature
+
+EntrezGeneID_shared = select(hs, 
+       keys = my.symbols,
+       columns = c("ENTREZID", "SYMBOL"),
+       keytype = "SYMBOL")
+EntrezGeneID_shared = EntrezGeneID_shared$ENTREZID
+
+
+EntrezGeneID_primate = select(hs, 
+       keys = my.symbols_2,
+       columns = c("ENTREZID", "SYMBOL"),
+       keytype = "SYMBOL")
+EntrezGeneID_primate = EntrezGeneID_primate$ENTREZID
+
+
+EntrezGeneID_rodent = select(hs, 
+       keys = my.symbols_3,
+       columns = c("ENTREZID", "SYMBOL"),
+       keytype = "SYMBOL")
+EntrezGeneID_rodent = EntrezGeneID_rodent$ENTREZID
+
+
+EntrezGeneID_laurasia = select(hs, 
+       keys = my.symbols_4,
+       columns = c("ENTREZID", "SYMBOL"),
+       keytype = "SYMBOL")
+EntrezGeneID_laurasia = EntrezGeneID_laurasia$ENTREZID
+
+#DO package
+library(DOSE)
+
+
+gene_shared <- EntrezGeneID_shared
+gene_primate <- EntrezGeneID_primate
+gene_rodent <- EntrezGeneID_rodent
+gene_laurasia <- EntrezGeneID_laurasia
+
+#Running Disease Ontology algorithm
+x_shared <- enrichDO(gene = gene_shared,
+              ont           = "DO",
+              pvalueCutoff  = 0.05,
+              pAdjustMethod = "BH",
+              minGSSize     = 5,
+              maxGSSize     = 500,
+              qvalueCutoff  = 0.05,
+              readable      = FALSE)
+
+x_primate <- enrichDO(gene = gene_primate,
+              ont           = "DO",
+              pvalueCutoff  = 0.05,
+              pAdjustMethod = "BH",
+              minGSSize     = 5,
+              maxGSSize     = 500,
+              qvalueCutoff  = 0.05,
+              readable      = FALSE)
+
+x_rodent <- enrichDO(gene = gene_rodent,
+              ont           = "DO",
+              pvalueCutoff  = 0.05,
+              pAdjustMethod = "BH",
+              minGSSize     = 5,
+              maxGSSize     = 500,
+              qvalueCutoff  = 0.05,
+              readable      = FALSE)
+
+x_laurasia <- enrichDO(gene = gene_laurasia,
+              ont           = "DO",
+              pvalueCutoff  = 0.05,
+              pAdjustMethod = "BH",
+              minGSSize     = 5,
+              maxGSSize     = 500,
+              qvalueCutoff  = 0.05,
+              readable      = FALSE)
+
+
+```
+##Figure 4D - Disease Ontology
+```{r}
+#Bar Plot
+mutate(x_shared, qscore = -log(p.adjust, base=10)) %>% 
+    barplot(x="qscore")
+mutate(x_primate, qscore = -log(p.adjust, base=10)) %>% 
+    barplot(x="qscore")
+
+
+#DotPlot
+library(enrichplot)
+dotplot(x_shared, showCategory=30) + ggtitle("Shared")+ scale_fill_gradient(low = "magenta", high = "turquoise")
+dotplot(x_primate, showCategory=30) + ggtitle("Primate")+ scale_fill_gradient(low = "magenta", high = "turquoise")
+```
+
+
+
+
+##Figure 4E - Further Explorations with DO
+```{r}
+#Gene-Concept Network
+edox_shared <- setReadable(x_shared, 'org.Hs.eg.db', 'ENTREZID')
+edox_primate <- setReadable(x_primate, 'org.Hs.eg.db', 'ENTREZID')
+
+p2 <- cnetplot(edox_primate, foldChange=PrimateDEGs$feature)
+p1 <- cnetplot(edox_shared, foldChange=sharedDEGs)
+cowplot::plot_grid(p1,p2, ncol=2, labels=LETTERS[1:3], rel_widths=c(.8, .8, 1.2))
+
+
+p2 <- heatplot(edox, foldChange=geneList, showCategory=5)
+
+xx <- compareCluster(sharedDEGs, fun="enrichKEGG",
+                  pvalueCutoff=0.05)
+xx <- pairwise_termsim(xx)                     
+p1 <- emapplot(xx)
+```
 
 
 
