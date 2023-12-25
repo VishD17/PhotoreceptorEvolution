@@ -159,50 +159,6 @@ full_panel
 
 ##Figure 4B - Venn Diagrams
 ```{r}
-#types.use = rev(c("Cone", "Rod"))
-#OrthoObject4$seurat_clusters <- sub("oCone", "Cone", OrthoObject4$seurat_clusters)
-#OrthoObject4$seurat_clusters <- sub("oRod", "Rod", OrthoObject4$seurat_clusters)
-
-# Subset to known types
-metadata = Metadata(OrthoObject4, feature.1 = "seurat_clusters", feature.2 = "celltype")
-metadata.ordered = metadata[metadata$celltype %in% types.use,] %>% arrange(factor(celltype, levels = types.use))
-types.clusters = metadata.ordered$seurat_clusters
-
-types.clusters = "Rod"
-```
-
-```{r}
-
-vd_list = lapply(seq_along(types.clusters), function(index){
-  cluster = types.clusters[[index]]
-  venn.diagram(PrimateDEGs[[cluster]]$feature, RodentDEGs[[cluster]]$feature, LaurasiaDEGs[[cluster]]$feature)
-})
-
-vd_list
-
-par(mfrow = c(1,2))
-plot(c(1,2,3), c(1,2,4))
-plot(c(1,2,3), c(1,2,4))
-```
-
-```{r}
-
-# Extract DEGs features from each dataset
-primate_genes <- PrimateDEGs$feature
-rodent_genes <- RodentDEGs$feature
-laurasia_genes <- LaurasiaDEGs$feature
-
-# Create a Venn diagram
-venn_plot <- venn.diagram(
-  x = list(Primate = primate_genes, Rodent = rodent_genes, Laurasia = laurasia_genes),
-  category.names = c("Primate", "Rodent", "Laurasia"),
-  filename = NULL,
-  output = TRUE
-)
-grid.draw(venn_plot)
-```
-
-```{r}
 # Split PrimateDEGs based on cell types 
 
 
@@ -213,6 +169,7 @@ rodent_cone_genes <- RodentDEGs[RodentDEGs$group == "Cone", "feature"]
 laurasia_rod_genes <- LaurasiaDEGs[LaurasiaDEGs$group == "Rod", "feature"]
 laurasia_cone_genes <- LaurasiaDEGs[LaurasiaDEGs$group == "Cone", "feature"]
 
+myCol <- c("blue","turquoise","orange")
 
 # Create Venn diagrams for each cell type
 venn_rod <- venn.diagram(
@@ -224,15 +181,72 @@ venn_rod <- venn.diagram(
 
 venn_cone <- venn.diagram(
   x = list(Primate = primate_cone_genes, Rodent = rodent_cone_genes, Laurasia = laurasia_cone_genes),
-  category.names = c("Primate", "Rodent", "Laurasia"),
   filename = NULL,
-  output = TRUE
-)
+  fill = c("#1235FA", '#C80D92', '#EA8A24'))
+
+# Display Venn diagram
+grid.draw(venn_cone)
+
+#Customization of VennDiagram: Circle Area Proportional to Number of DEGs
+vennd_cone <- euler(c(A = 72, B = 167, "A&B" = 14, C = 149, 
+                "A&C" = 29, "B&C" = 32, "A&B&C" = 18))
+plot(vennd_cone, fills = c("blue", "turquoise", "orange"), quantities = TRUE)
+
+vennd_rod <- euler(c(A = 64, B = 26, "A&B" = 6, C = 33, 
+                "A&C" = 4, "B&C" = 3, "A&B&C" = 8))
+plot(vennd_rod, fills = c("blue", "turquoise", "orange"), quantities = TRUE)
 
 
-grid.draw(venn_rod)
 
 ```
+##Figure 4C - Gene Ontology
+```{r}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+
+rodentSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
+  speciesDEGs = RodentDEGs$feature
+  return(speciesDEGs[!speciesDEGs %in% c(PrimateDEGs$feature, LaurasiaDEGs$feature)])
+  })
+rodentSpecificDEGs = rodentSpecificDEGs[[1]]
+
+laurasiaSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), function(element){
+  speciesDEGs = LaurasiaDEGs$feature
+  return(speciesDEGs[!speciesDEGs %in% c(RodentDEGs$feature, PrimateDEGs$feature)])
+  })
+laurasiaSpecificDEGs = laurasiaSpecificDEGs[[1]]
+
+geneLists = lapply(list(sharedDEGs, PrimateDEGs$feature, RodentDEGs$feature, LaurasiaDEGs$feature), function(x) sort(unique(unlist(x))))
+names(geneLists) = c("shared", "primates", "rodents", "laurasia")
+
+GO.results = lapply(geneLists, function(geneList){
+  enrichGO(gene = geneList,
+                # universe      = names(geneList),
+                OrgDb         = org.Hs.eg.db,
+                keyType       = 'SYMBOL',
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.01,
+                qvalueCutoff  = 0.05,
+                readable      = TRUE)
+})
+```
+
+```{r}
+GO.plots = lapply(GO.results, function(ego) dotplot(ego, showCategory=10) + scale_fill_gradient(low = "magenta", high = "turquoise"))
+
+#ggarrange(plotlist = GO.plots, nrow = 2, ncol =2, labels = names(geneLists), hjust = 0, align = "v")
+shared_plot = GO.plots$shared
+primate_plot = GO.plots$primates
+rodent_plot = GO.plots$rodents
+laurasia_plot = GO.plots$laurasia
+
+shared_plot
+primate_plot
+rodent_plot
+laurasia_plot
+```
+
 
 
 
