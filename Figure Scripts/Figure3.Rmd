@@ -24,19 +24,18 @@ library(viridis)
 
 ```{r}
 #Figure 3a 
-ph <- NormalizeData(ph)
-ph <- FindVariableFeatures(ph, nfeatures = 2000)
-ph <- ScaleData(ph)
-ph <- RunPCA(ph)
-ph <- RunUMAP(ph, dims = 1:50)
+ph_ortho <- NormalizeData(ph_ortho)
+ph_ortho <- FindVariableFeatures(ph_ortho, nfeatures = 2000)
+ph_ortho <- ScaleData(ph_ortho)
+ph_ortho <- RunPCA(ph_ortho)
+ph_ortho <- RunUMAP(ph_ortho, dims = 1:50)
 
-ph <- FindNeighbors(ph, dims = 1:10)
-ph <- FindClusters(ph, resolution = 0.5)
-DimPlot(ph, group.by = "species")
+ph_ortho <- FindNeighbors(ph_ortho, dims = 1:10)
+ph_ortho <- FindClusters(ph_ortho, resolution = 0.5)
+DimPlot(ph_ortho, group.by = "species")+NoLegend() + NoAxes() +labs(title = NULL)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_3/3a_unintegrated.pdf", width = 7.5, height = 5)
 ##PRs (No Integration)
-pdf("/Users/vishruthdinesh/Downloads/Figures/Fig_3/3a_noint.pdf", w=6, h=6, useDingbats = FALSE)
-DimPlot(ph, group.by = "species")
-while (!is.null(dev.list()))  dev.off()
+
 ##PRs (Integrated)
 DimPlot(OrthoObject2, group.by = "species")+NoLegend() + NoAxes() +labs(title = NULL)
 ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_3/3a_integrated.pdf", width = 7.5, height = 5)
@@ -103,13 +102,13 @@ ggplot(data = df, aes(x = Mouse_Type, y = OT, fill = Mapping)) +
     axis.title.y = element_blank(), # Remove x-axis title
     panel.background = element_blank(),  # Remove panel background
     panel.border = element_blank(),
-   legend.position = "none",
+   #legend.position = "none",
     plot.margin = margin(l = 7.5, r = 7.5)  # Adjust plot margins for a skinnier graph
   ) +
   scale_fill_gradientn(colors = c("#FFFFFF", "#DFE6FF", "#7292FF", "#002DC6", "#002191"), na.value = "gray70") +
   scale_y_discrete(limits = levels(df$OT)) 
 
-ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_3/3d.pdf", width = 10, height = 5)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_3/3d_withlegend.pdf", width = 10, height = 5)
 
 ```
 
@@ -133,8 +132,10 @@ ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_3/3e.pdf", width = 10, heigh
 
 ```{r}
 #Updated Figure 3f
+
 #OrthoObject_Fig3 <- OrthoObject2
 OrthoObject_Fig3 <- OrthoObject2
+
 colors = c("#FFFFFF", "#E3E9FF", "#5177FF", "#002DC6", "#002191")
 Idents(OrthoObject_Fig3) = "seurat_clusters"
 
@@ -147,12 +148,12 @@ max_type <- colnames(type_table)[max.col(type_table)]
 
 
 #types_plot <- which(max_type == "oRod")
-types_plot <- c(types_plot, which(max_type == "oLM-cone"))
+types_plot <- which(max_type == "oLM-cone")
 types_plot <- c(types_plot, which(max_type == "oS-cone"))
 types_plot <- rownames(type_table)[types_plot]
 
-OT_order <- c( "oS-cone","oLM-cone")
-seuratcluster_species_order <- c("human_3", "marmoset_0", "mouse_l/m-cone", "squirrel_0", "cow_3","lizard_1", "chicken_4","human_2", "marmoset_5", "mouse_s-cone",  "squirrel_3","cow_5", "lizard_8", "chicken_7")
+OT_order <- c("oS-cone","oLM-cone")
+seuratcluster_species_order <- c("human_3", "marmoset_0", "mouse_0", "squirrel_0", "cow_3","lizard_1", "chicken_4","human_2", "marmoset_5", "mouse_1",  "squirrel_3","cow_5", "lizard_8", "chicken_7")
 
 plot_table <- type_table[seuratcluster_species_order, OT_order]
 
@@ -162,16 +163,20 @@ colnames(df) = c("Species_Type", "OT", "mapping")
 #df$Species_Type = factor(df$Species_Type, levels = rev(types_plot))
 #df$OT = factor(df$OT, levels = OT_order)
 
-
+#Clean Plot (No labels or legend)
 ggplot(data = df, aes(x=OT, y=Species_Type, fill=mapping)) +
     geom_tile(colour="gray50", size=0.2) +
   guides(fill=guide_legend(title="Mapping %")) + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 1),
+    theme(
           panel.border = element_blank(),
+          axis.text.x = element_blank(),  
+          axis.title.x = element_blank(),  
+          axis.text.y = element_blank(),    
+          axis.title.y = element_blank(),
           axis.title = element_blank(),
           panel.background = element_blank()) +
-    scale_fill_gradientn(colors = colors, na.value = "gray70") + scale_x_discrete(limits = levels(df$OT)) +coord_flip()
-dev.off()
+    scale_fill_gradientn(colors = colors, na.value = "gray70") + scale_x_discrete(limits = levels(df$OT))+NoLegend() +coord_flip()
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_3/3f.pdf", width = 10, height = 5)
 ```
 
 

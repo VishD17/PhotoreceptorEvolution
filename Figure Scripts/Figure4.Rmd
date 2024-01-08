@@ -25,7 +25,7 @@ padj.threshold = 0.05
 library(presto)
 
 # Primate DEGs
-PrimatePR = subset(OrthoObject4, species %in% c("marmoset", "human"))
+PrimatePR = subset(OrthoObject4, species %in% c("human", "marmoset"))
 
 PrimatePRMarkers = wilcoxauc(PrimatePR, 'celltype')
 #genes_human = rownames(human_ortho)
@@ -71,16 +71,17 @@ Laurasia_Rod_subset = subset(LaurasiaPRMarkers, group == "Rod" & logFC > logFC.t
 LaurasiaDEGs <- rbind(Laurasia_Cone_subset,  Laurasia_Rod_subset)
 LaurasiaDEGs_Vis <- rbind(Laurasia_Cone_subset1,  Laurasia_Rod_subset)
 
-#LizChick_Cone_subset = subset(LizChickPRMarkers, group == "oCone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
-#LizChick_Rod = subset(LizChickPRMarkers, group == "oRod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
-#LizChickDEGs <- rbind(LizChick_LM_subset, LizChick_S_subset, LizChick_Rod)
+LizChick_Cone_subset = subset(LizChickPRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+LizChick_Rod = subset(LizChickPRMarkers, group == "Rod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+LizChickDEGs <- rbind(LizChick_Cone_subset, LizChick_Rod)
 
 # Conserved and species-enriched genes
 # Flatten the lists into vectors
+HumanDEGs_flat <- unlist(HumanDEGs)
 PrimateDEGs_flat <- unlist(PrimateDEGs)
 RodentDEGs_flat <- unlist(RodentDEGs)
 LaurasiaDEGs_flat <- unlist(LaurasiaDEGs)
-#LizChickDEGs_flat <- unlist(LizChickDEGs)
+LizChickDEGs_flat <- unlist(LizChickDEGs)
 
 # Combine the vectors into a list
 shared <- list(PrimateDEGs_flat, RodentDEGs_flat, LaurasiaDEGs_flat)
@@ -139,7 +140,7 @@ full_panel =  plot_grid(panel1,
                         panel3, 
                         nrow = 3)
 
-full_panel
+plot(full_panel)
 
 ```
 
@@ -222,8 +223,8 @@ laurasiaSpecificDEGs = lapply(seq_along((levels(OrthoObject4$dendro.order))), fu
   })
 laurasiaSpecificDEGs = laurasiaSpecificDEGs[[1]]
 
-geneLists = lapply(list(sharedDEGs, PrimateDEGs$feature, RodentDEGs$feature, LaurasiaDEGs$feature), function(x) sort(unique(unlist(x))))
-names(geneLists) = c("shared", "primates", "rodents", "laurasia")
+geneLists = lapply(list(sharedDEGs, HumanDEGs$feature, RodentDEGs$feature, LaurasiaDEGs$feature), function(x) sort(unique(unlist(x))))
+names(geneLists) = c("shared", "human", "rodents", "laurasia")
 
 GO.results = lapply(geneLists, function(geneList){
   enrichGO(gene = geneList,
@@ -245,13 +246,21 @@ GO.plots = lapply(GO.results, function(ego) dotplot(ego, showCategory=10) + scal
 #ggarrange(plotlist = GO.plots, nrow = 2, ncol =2, labels = names(geneLists), hjust = 0, align = "v")
 shared_plot = GO.plots$shared
 primate_plot = GO.plots$primates
+human_plot = GO.plots$human
 rodent_plot = GO.plots$rodents
 laurasia_plot = GO.plots$laurasia
 
 shared_plot
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4cShared.pdf", width = 7.5, height = 5)
 primate_plot
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4cPrimate.pdf", width = 7.5, height = 5)
 rodent_plot
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4cRodent.pdf", width = 7.5, height = 5)
 laurasia_plot
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4cLaurasia.pdf", width = 7.5, height = 5)
+
+human_plot
+
 ```
 
 
@@ -262,13 +271,21 @@ laurasia_plot
 library(org.Hs.eg.db)
 hs <- org.Hs.eg.db
 
-PrimateDEGs_feature = PrimateDEGs$feature
+HumanPR = subset(OrthoObject4, species %in% c("human"))
+HumanPRMarkers = wilcoxauc(PrimatePR, 'celltype')
+
+Human_Cone_subset = subset(PrimatePRMarkers, group == "Cone" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+Human_Rod_subset = subset(PrimatePRMarkers, group == "Rod" & logFC > logFC.threshold & padj < padj.threshold) %>% arrange(padj)
+
+HumanDEGs <- rbind(Human_Cone_subset, Human_Rod_subset)
+
+HumanDEGs_feature = HumanDEGs$feature
 RodentDEGs_feature = RodentDEGs$feature
 LaurasiaDEGs_feature = LaurasiaDEGs$feature
 
 #Convert Gene Symbols to Entrez Gene
 my.symbols <- sharedDEGs
-my.symbols_2 <- PrimateDEGs_feature
+my.symbols_2 <- HumanDEGs_feature
 my.symbols_3 <- RodentDEGs_feature
 my.symbols_4 <- LaurasiaDEGs_feature
 
@@ -279,11 +296,11 @@ EntrezGeneID_shared = select(hs,
 EntrezGeneID_shared = EntrezGeneID_shared$ENTREZID
 
 
-EntrezGeneID_primate = select(hs, 
+EntrezGeneID_human = select(hs, 
        keys = my.symbols_2,
        columns = c("ENTREZID", "SYMBOL"),
        keytype = "SYMBOL")
-EntrezGeneID_primate = EntrezGeneID_primate$ENTREZID
+EntrezGeneID_human = EntrezGeneID_human$ENTREZID
 
 
 EntrezGeneID_rodent = select(hs, 
@@ -304,7 +321,7 @@ library(DOSE)
 
 
 gene_shared <- EntrezGeneID_shared
-gene_primate <- EntrezGeneID_primate
+gene_human <- EntrezGeneID_human
 gene_rodent <- EntrezGeneID_rodent
 gene_laurasia <- EntrezGeneID_laurasia
 
@@ -318,7 +335,7 @@ x_shared <- enrichDO(gene = gene_shared,
               qvalueCutoff  = 0.05,
               readable      = FALSE)
 
-x_primate <- enrichDO(gene = gene_primate,
+x_human <- enrichDO(gene = gene_human,
               ont           = "DO",
               pvalueCutoff  = 0.05,
               pAdjustMethod = "BH",
@@ -352,14 +369,24 @@ x_laurasia <- enrichDO(gene = gene_laurasia,
 #Bar Plot
 mutate(x_shared, qscore = -log(p.adjust, base=10)) %>% 
     barplot(x="qscore")
-mutate(x_primate, qscore = -log(p.adjust, base=10)) %>% 
+mutate(x_human, qscore = -log(p.adjust, base=10)) %>% 
+    barplot(x="qscore")
+mutate(x_rodent, qscore = -log(p.adjust, base=10)) %>% 
+    barplot(x="qscore")
+mutate(x_laurasia, qscore = -log(p.adjust, base=10)) %>% 
     barplot(x="qscore")
 
 
 #DotPlot
 library(enrichplot)
-dotplot(x_shared, showCategory=30) + ggtitle("Shared")+ scale_fill_gradient(low = "magenta", high = "turquoise")
-dotplot(x_primate, showCategory=30) + ggtitle("Primate")+ scale_fill_gradient(low = "magenta", high = "turquoise")
+dotplot(x_shared, showCategory=30) 
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4dShared.pdf", width = 7.5, height = 5)
+dotplot(x_human, showCategory=30) 
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4dPrimate.pdf", width = 8.5, height = 6)
+dotplot(x_rodent, showCategory=30) 
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4dRodent.pdf", width = 7.5, height = 5)
+dotplot(x_laurasia, showCategory=30) 
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4dLaurasia.pdf", width = 7.5, height = 5)
 ```
 
 
@@ -369,19 +396,24 @@ dotplot(x_primate, showCategory=30) + ggtitle("Primate")+ scale_fill_gradient(lo
 ```{r}
 #Gene-Concept Network
 edox_shared <- setReadable(x_shared, 'org.Hs.eg.db', 'ENTREZID')
-edox_primate <- setReadable(x_primate, 'org.Hs.eg.db', 'ENTREZID')
+edox_human <- setReadable(x_human, 'org.Hs.eg.db', 'ENTREZID')
+edox_rodent <- setReadable(x_rodent, 'org.Hs.eg.db', 'ENTREZID')
+edox_laurasia <- setReadable(x_laurasia, 'org.Hs.eg.db', 'ENTREZID')
 
-p2 <- cnetplot(edox_primate, foldChange=PrimateDEGs$feature)
 p1 <- cnetplot(edox_shared, foldChange=sharedDEGs)
+p2 <- cnetplot(edox_human, foldChange=PrimateDEGs$feature)
+p3 <- cnetplot(edox_rodent, foldChange=RodentDEGs$feature)
+p4 <- cnetplot(edox_laurasia, foldChange=LaurasiaDEGs$feature)
 cowplot::plot_grid(p1,p2, ncol=2, labels=LETTERS[1:3], rel_widths=c(.8, .8, 1.2))
 
-
-p2 <- heatplot(edox, foldChange=geneList, showCategory=5)
-
-xx <- compareCluster(sharedDEGs, fun="enrichKEGG",
-                  pvalueCutoff=0.05)
-xx <- pairwise_termsim(xx)                     
-p1 <- emapplot(xx)
+p1
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4eShared.pdf", width = 7.5, height = 5)
+p2
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4ePrimate.pdf", width = 7.5, height = 5)
+p3
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4eRodent.pdf", width = 7.5, height = 5)
+p4
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_4/4eLaurasia.pdf", width = 7.5, height = 5)
 ```
 
 
