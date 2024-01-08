@@ -1,0 +1,170 @@
+```{r}
+human_ortho <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/orthoHuman_PR.h5seurat")
+human_ortho <- FindNeighbors(human_ortho)
+human_ortho <- FindClusters(human_ortho, resolution = 1.4)
+marmoset_ortho <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/orthoMarmoset_PR.h5seurat")
+mouse_ortho <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/orthoMouse_PR.h5seurat")
+mouse_ortho$seurat_clusters <- sub("l/m-cone", "0", mouse_ortho$seurat_clusters)
+mouse_ortho$seurat_clusters <- sub("s-cone", "1", mouse_ortho$seurat_clusters)
+mouse_ortho$seurat_clusters <- sub("rod", "2", mouse_ortho$seurat_clusters)
+squirrel_ortho <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/orthoSquirrel_PR.h5seurat")
+cow_ortho <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/orthoCow_PR.h5seurat")
+lizard_ortho <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/orthoLizard_PR.h5seurat")
+chicken_ortho <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/orthoChicken_PR.h5seurat")
+
+
+human_ortho@meta.data$seuratcluster_species <- paste0(human_ortho@meta.data$species, "_", human_ortho@meta.data$seurat_clusters)
+marmoset_ortho@meta.data$seuratcluster_species <- paste0(marmoset_ortho@meta.data$species, "_", marmoset_ortho@meta.data$seurat_clusters)
+mouse_ortho@meta.data$seuratcluster_species <- paste0(mouse_ortho@meta.data$species, "_", mouse_ortho@meta.data$seurat_clusters)
+squirrel_ortho@meta.data$seuratcluster_species <- paste0(squirrel_ortho@meta.data$species, "_", squirrel_ortho@meta.data$seurat_clusters)
+cow_ortho@meta.data$seuratcluster_species <- paste0(cow_ortho@meta.data$species, "_", cow_ortho@meta.data$seurat_clusters)
+lizard_ortho@meta.data$seuratcluster_species <- paste0(lizard_ortho@meta.data$species, "_", lizard_ortho@meta.data$seurat_clusters)
+chicken_ortho@meta.data$seuratcluster_species <- paste0(chicken_ortho@meta.data$species, "_", chicken_ortho@meta.data$seurat_clusters)
+
+
+```
+
+```{r}
+ph_ortho <- merge(lizard_ortho, y = c(cow_ortho, squirrel_ortho, marmoset_ortho, human_ortho, mouse_ortho, chicken_ortho), add.cell.ids = c("lizard", "cow","squirrel", "marmoset", "human", "mouse", "chicken"), project = "merge")
+#ph_nochicken <- merge(lizard_ortho, y = c(cow_ortho, squirrel_ortho, marmoset_ortho, human_ortho, mouse_ortho), add.cell.ids = c("lizard", "cow","squirrel", "marmoset", "human", "mouse"), project = "merge")
+
+table(ph_ortho$species)
+```
+
+```{r}
+#Integrating using ClusterSeruat (josh's) function
+OrthoObject2 = ClusterSeurat(ph_ortho, nfeatures = 2000, numPCs = 15, integrate.by = "species", cluster_resolution = 0.75)
+#Ortho_nochicken <- ClusterSeurat(ph_nochicken, nfeatures = 2000, numPCs = 15, integrate.by = "species", cluster_resolution = 0.75)
+```
+
+```{r}
+#Renaming some of the cell-types
+OrthoObject2$celltype <- sub("Rod", "rod", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("ML_cone", "l/m-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("MW_cone", "l/m-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("S_cone", "s-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("mlCone", "l/m-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("SCone", "s-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("sCones", "s-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("l/m-cones", "l/m-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("rods", "rod", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("double", "double-cone", OrthoObject2$celltype)
+```
+
+```{r}
+DimPlot(OrthoObject2, group.by = "celltype")
+DimPlot(OrthoObject2, group.by = "species")
+DimPlot(OrthoObject2, reduction = "umap")
+table(OrthoObject2$celltype, OrthoObject2$seurat_clusters)
+table(OrthoObject2$species)
+```
+
+```{r}
+#Merging Clusters
+OrthoObject2 <- MergeClusters(OrthoObject2, idents = c(2,3), refactor = TRUE)
+#Renaming SeuratClusters to OrthoType identity
+OrthoObject2$seurat_clusters <- sub("0", "oLM-cone", OrthoObject2$seurat_clusters)
+OrthoObject2$seurat_clusters <- sub("1", "oS-cone", OrthoObject2$seurat_clusters)
+OrthoObject2$seurat_clusters <- sub("2", "oRod", OrthoObject2$seurat_clusters)
+```
+
+
+```{r}
+#Renaming some of the cell-types
+Ortho_nochicken$celltype <- sub("Rod", "rod", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("ML_cone", "l/m-cone", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("MW_cone", "l/m-cone", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("S_cone", "s-cone", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("mlCone", "l/m-cone", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("SCone", "s-cone", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("sCones", "s-cone", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("l/m-cones", "l/m-cone", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("rods", "rod", Ortho_nochicken$celltype)
+Ortho_nochicken$celltype <- sub("double", "double-cone", Ortho_nochicken$celltype)
+
+#Merging Clusters
+Ortho_nochicken <- MergeClusters(Ortho_nochicken, idents = c(2,3), refactor = TRUE)
+#Renaming SeuratClusters to OrthoType identity
+Ortho_nochicken$seurat_clusters <- sub("0", "oLM-cone", Ortho_nochicken$seurat_clusters)
+Ortho_nochicken$seurat_clusters <- sub("1", "oS-cone", Ortho_nochicken$seurat_clusters)
+Ortho_nochicken$seurat_clusters <- sub("2", "oRod", Ortho_nochicken$seurat_clusters)
+
+```
+
+```{r}
+DimPlot(Ortho_nochicken, group.by = "celltype")
+DimPlot(Ortho_nochicken, group.by = "species")
+DimPlot(Ortho_nochicken, reduction = "umap")
+table(Ortho_nochicken$celltype, Ortho_nochicken$seurat_clusters)
+table(Ortho_nochicken$species)
+```
+
+```{r}
+
+#Subsetting integrated object so that each "species_class" has an approx. equal number of cells
+Ortho_nochicken@meta.data$species_class <- paste0(Ortho_nochicken@meta.data$species, "_", Ortho_nochicken@meta.data$celltype)
+
+Idents(Ortho_nochicken) = "species_class"
+
+
+
+avg_exp <- AverageExpression(Ortho_nochicken, group.by ="species_class", slot = "data" )
+cor_mat <- cor(avg_exp$integrated)
+species_list <- rev(c("lizard", "cow", "squirrel", "mouse", "marmoset", "human"))
+
+order <- c(paste0(species_list, "_rod"), paste0(species_list, "_l/m-cone"), paste0(species_list, "_s-cone"))
+file_table <- cor_mat[order, order]
+file_table
+file_table <- melt(file_table)
+
+ggplot(data = file_table, aes(x=Var1, y=Var2, fill=value)) + 
+    geom_tile() +
+    theme(axis.text.x = element_text(angle = 100, vjust = 0.5, hjust=1), 
+          axis.ticks = element_blank(), 
+          panel.border = element_blank(),
+          axis.title = element_blank()) +
+    scale_fill_viridis(option = "E", discrete = FALSE) +
+    coord_fixed()
+```
+
+```{r}
+type_table <- table(Ortho_nochicken@meta.data$species_class, Ortho_nochicken@meta.data$seurat_clusters)
+mouse_table <- type_table[grep("mar", rownames(type_table)),]
+
+species <- c("human", "marmoset", "mouse", "squirrel", "cow", "lizard")
+
+species_order <-c("human_rod", "human_l/m-cone","human_s-cone","marmoset_rod", "marmoset_l/m-cone","marmoset_s-cone", "mouse_rod", "mouse_l/m-cone","mouse_s-cone", "squirrel_rod", "squirrel_l/m-cone","squirrel_s-cone","cow_rod", "cow_l/m-cone","cow_s-cone","lizard_rod", "lizard_l/m-cone","lizard_s-cone")
+OT_order <- c("oRod","oLM-cone", "oS-cone")
+
+plotConfusionMatrix(type_table[species_order, OT_order], col.high = "darkblue", col.low = "white", xlab.use = "OT", ylab.use = "Mouse Types")
+
+type_table = t(scale(t(type_table), center = FALSE, scale = rowSums(type_table)))*103
+df = melt(type_table)
+colnames(df) = c("Mouse_Type", "OT", "mapping")
+df$Mouse_Type = factor(df$Mouse_Type, levels = species_order)
+df$OT = factor(df$OT, levels = rev(OT_order))
+
+#For first species
+ggplot(data = df, aes(x = Mouse_Type, y = OT, fill = mapping)) +
+  geom_tile(colour = "gray50", size = 0.2) +
+  guides(fill = guide_legend(title = "Mapping %")) +
+  theme(
+    axis.text.x = element_blank(),  # Remove x-axis labels
+    axis.title.x = element_blank(),  # Remove x-axis title
+    panel.background = element_blank(),  # Remove panel background
+    panel.border = element_blank(),
+    plot.margin = margin(l = 7.5, r = 7.5)  # Adjust plot margins for a skinnier graph
+  ) +
+  scale_fill_gradientn(colors = c("#FFFFFF", "#DFE6FF", "#7292FF", "#002DC6", "#002191"), na.value = "gray70") +
+  scale_y_discrete(limits = levels(df$OT)) 
+
+
+```
+
+
+
+
+
+
+
+

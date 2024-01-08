@@ -1,0 +1,540 @@
+```{r}
+library(Seurat)
+library(SeuratData)
+library(SeuratDisk)
+
+#MOUSE
+
+#Converting from h5ad to h5seurat
+Convert("/Users/vishruthdinesh/Downloads/Mouse_PR_clean.h5ad", dest = "h5seurat", overwrite = TRUE)
+
+#Loading the h5seurat dataset
+mouse <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Mouse_PR_clean.h5seurat", meta.data = FALSE, misc = FALSE)
+#mouse[["RNA"]]$counts <- as.sparse(mouse[["RNA"]]$counts)
+#mouse[["RNA"]]$data <- as.sparse(mouse[["RNA"]]$data)
+
+#Adding metadata to mouse dataset 
+library(rhdf5)
+mouse_meta <- h5read("/Users/vishruthdinesh/Downloads/Mouse_PR_clean.h5ad", "/obs/leiden_duplicate")
+mouse_batch <- h5read("/Users/vishruthdinesh/Downloads/Mouse_PR_clean.h5ad", "/obs/batch")
+mouse$celltype <- mouse_meta[["codes"]]
+mouse$batch <- mouse_batch[["codes"]]
+mouse$celltype[mouse$celltype == "0"] <- "l/m-cone"
+mouse$celltype[mouse$celltype == "1"] <- "rod"
+mouse$celltype[mouse$celltype == "2"] <- "s-cone"
+
+
+#Standard Pre-processing of Mouse Dataset
+mouse <- NormalizeData(mouse)
+mouse <- FindVariableFeatures(mouse, nfeatures = 2000)
+mouse <- ScaleData(mouse)
+mouse <- RunPCA(mouse)
+
+mouse <- RunUMAP(mouse, dims = 1:50)
+DimPlot(mouse)
+
+mouse <- FindNeighbors(mouse, dims = 1:10)
+mouse <- FindClusters(mouse, resolution = 0.5)
+DimPlot(mouse, reduction = "umap")
+FeaturePlot(mouse, features = c("RHO", "ARR3", "CCDC136", "OPN1MW"))
+Idents(mouse) = "celltype"
+
+mouse_de_genes <- c(mouse_rod_list, mouse_scone_list, mouse_lmcone_list)
+mouse <- mouse[mouse_de_genes,]
+
+
+
+#Opening and Pre-processing Marmoset
+#Convert('/Users/vishruthdinesh/Downloads/Marmoset_PR_clean_noint.h5ad', dest = "h5seurat", overwrite = TRUE)
+marmoset <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Marmoset_PR_clean_noint.h5seurat", meta.data = FALSE, misc = FALSE)
+
+#Loading marmoset metadata
+marmoset_meta <- h5read("/Users/vishruthdinesh/Downloads/Marmoset_PR_clean_noint.h5ad", "/obs/leiden_duplicate")
+marmoset_batch <- h5read("/Users/vishruthdinesh/Downloads/Marmoset_PR_clean_noint.h5ad", "/obs/batch")
+marmoset$celltype <- marmoset_meta[["codes"]]
+marmoset$batch <- marmoset_batch[["codes"]]
+
+marmoset$celltype[marmoset$celltype == "0"] <- "l/m-cone"
+marmoset$celltype[marmoset$celltype == "1"] <- "rod"
+marmoset$celltype[marmoset$celltype == "2"] <- "s-cone"
+#marmoset$celltype[marmoset$celltype == "3"] <- "unknown"
+FeaturePlot(marmoset, features = c("batch"))
+
+marmoset_int = ClusterSeurat(marmoset, integrate.by = "batch")
+DimPlot(marmoset_int, group.by = "celltype")
+Idents(marmoset_int) = "celltype"
+marmoset_de_genes <- c(marmoset_rod_list, marmoset_scone_list, marmoset_lmcone_list)
+int_marmoset <- int_marmoset[marmoset_de_genes,]
+
+#Opening and Pre-processing Chicken
+#Convert('/Users/vishruthdinesh/Downloads/Chicken_PR_clean1.h5ad', dest = "h5seurat", overwrite = TRUE)
+
+chicken <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Chicken_PR_clean1.h5seurat", meta.data = FALSE, misc = FALSE)
+
+#Loading metadata
+chicken_meta <- h5read("/Users/vishruthdinesh/Downloads/Chicken_PR_clean1.h5ad", "/obs/leiden_duplicate")
+chicken_batch <- h5read("/Users/vishruthdinesh/Downloads/Chicken_PR_clean1.h5ad", "/obs/batch")
+chicken$celltype <- chicken_meta[["codes"]]
+chicken$batch <- chicken_batch[["codes"]]
+chicken$celltype[chicken$celltype == "0"] <- "developing"
+chicken$celltype[chicken$celltype == "1"] <- "double"
+chicken$celltype[chicken$celltype == "2"] <- "l/m-cone"
+chicken$celltype[chicken$celltype == "3"] <- "rod"
+chicken$celltype[chicken$celltype == "4"] <- "s-cone"
+
+#Pre-processing
+chicken <- NormalizeData(chicken)
+chicken <- FindVariableFeatures(chicken, nfeatures = 2000)
+chicken <- ScaleData(chicken)
+chicken <- RunPCA(chicken)
+chicken <- RunUMAP(chicken, dims = 1:50)
+
+DimPlot(chicken)
+chicken <- FindNeighbors(chicken, dims = 1:10)
+chicken <- FindClusters(chicken, resolution = 0.1)
+DimPlot(chicken, reduction = "umap")
+Idents(chicken) = "celltype"
+
+chicken <- subset(chicken, celltype %in% setdiff(unique(chicken$celltype), "developing"))
+chicken_de_genes <- c(chicken_rod_list, chicken_scone_list, chicken_lmcone_list, chicken_double_list)
+chicken <- chicken[chicken_de_genes,]
+#chicken <- subset(chicken, celltype %in% setdiff(unique(chicken$celltype), "double"))
+#Lizard Dataset
+
+lizard <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Lizard_PR_clean.h5seurat", meta.data = FALSE, misc = FALSE)
+
+#Loading metadata
+lizard_meta <- h5read("/Users/vishruthdinesh/Downloads/Lizard_PR_clean.h5ad", "/obs/leiden_duplicate")
+lizard_batch <- h5read("/Users/vishruthdinesh/Downloads/Lizard_PR_clean.h5ad", "/obs/batch")
+lizard$celltype <- lizard_meta[["codes"]]
+lizard$batch <- lizard_batch[["codes"]]
+lizard$celltype[lizard$celltype == "0"] <- "l/m-cone"
+lizard$celltype[lizard$celltype == "1"] <- "rod"
+lizard$celltype[lizard$celltype == "2"] <- "s-cone"
+
+
+#Pre-processing
+lizard <- NormalizeData(lizard)
+lizard <- FindVariableFeatures(lizard, nfeatures = 2000)
+lizard <- ScaleData(lizard)
+lizard <- RunPCA(lizard)
+lizard <- RunUMAP(lizard, dims = 1:50)
+DimPlot(lizard)
+
+lizard <- FindNeighbors(lizard, dims = 1:10)
+lizard <- FindClusters(lizard, resolution = 0.5)
+DimPlot(lizard, reduction = "umap")
+Idents(lizard) = "celltype"
+lizard_de_genes <- c(lizard_rod_list, lizard_scone_list, lizard_lmcone_list)
+lizard <- lizard[lizard_de_genes,]
+#lizard_subset = subset(lizard, cells = WhichCells(lizard, downsample = 250, seed = 12345))
+
+#DimPlot(lizard_subset, group.by = "celltype")
+
+#Cow
+cow <- readRDS("/Users/vishruthdinesh/Downloads/Cow_PR_v1.rds")
+
+DefaultAssay(cow)<-"RNA"
+#cow[["integrated"]] <- "NULL"
+#Pre-processing
+cow <- NormalizeData(cow)
+cow <- FindVariableFeatures(cow, nfeatures = 2000)
+cow <- ScaleData(cow)
+cow <- RunPCA(cow)
+cow <- RunUMAP(cow, dims = 1:50)
+
+DimPlot(cow, group.by = "type")
+
+cow <- FindNeighbors(cow, dims = 1:10)
+cow <- FindClusters(cow, resolution = 0.5)
+DimPlot(cow, reduction = "umap")
+cow$celltype <- cow$type
+Idents(cow) = "celltype"
+cow_de_genes <- c(cow_rod_list, cow_scone_list, cow_lmcone_list)
+cow <- cow[cow_de_genes,]
+
+#Squirrel
+#squirrel <- readRDS("/Users/vishruthdinesh/Downloads/Squirrel_PR_int_v2.rds")
+#DefaultAssay(squirrel)<-"RNA"
+#Convert("/Users/vishruthdinesh/Downloads/Squirrel_PR_clean.h5ad", dest = "h5seurat", overwrite = TRUE)
+squirrel <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Squirrel_PR_clean.h5seurat", meta.data = FALSE, misc = FALSE)
+squirrel_meta <- h5read("/Users/vishruthdinesh/Downloads/Squirrel_PR_clean.h5ad", "/obs/leiden_duplicate")
+
+squirrel$celltype <- squirrel_meta[["codes"]]
+squirrel$celltype[squirrel$celltype == "0"] <- "l/m-cone"
+squirrel$celltype[squirrel$celltype == "1"] <- "rod"
+squirrel$celltype[squirrel$celltype == "2"] <- "s-cone"
+
+
+squirrel <- NormalizeData(squirrel)
+squirrel <- FindVariableFeatures(squirrel, nfeatures = 2000)
+squirrel <- ScaleData(squirrel)
+squirrel <- RunPCA(squirrel)
+squirrel <- RunUMAP(squirrel, dims = 1:50)
+DimPlot(squirrel, group.by = "celltype")
+
+
+#squirrel <- RenameIdents(squirrel, "S_cone" = "s-cone", "ML_cone"="l/m-cone")
+squirrel <- FindNeighbors(squirrel, dims = 1:10)
+squirrel <- FindClusters(squirrel, resolution = 0.5)
+DimPlot(squirrel, reduction = "umap")
+Idents(squirrel) = "celltype"
+
+squirrel_de_genes <- c(squirrel_rod_list, squirrel_scone_list, squirrel_lmcone_list)
+squirrel <- squirrel[squirrel_de_genes,]
+
+#Human
+human <- readRDS("/Users/vishruthdinesh/Downloads/Human_PR.rds")
+DefaultAssay(human)<-"RNA"
+human[["integrated"]] <- "NULL"
+SaveH5Seurat(human, filename = "/Users/vishruthdinesh/Downloads/Human_PR1.h5Seurat")
+Convert("/Users/vishruthdinesh/Downloads/Human_PR1.h5Seurat", dest = "h5ad")
+
+Convert("/Users/vishruthdinesh/Downloads/Human_PR_clean.h5ad", dest = "h5seurat", overwrite = TRUE)
+
+
+human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "BP"))
+human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "GabaAC"))
+human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "HC"))
+human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "MG"))
+human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "Other"))
+human <- subset(human, cell_class %in% setdiff(unique(human$cell_class), "RGC"))
+DimPlot(human, group.by = "cell_class")
+FeaturePlot(human, features = c("CCDC136", "THRB", "OPN1LW"))
+Idents(human) = "annotated_class"
+#human_subset = subset(human, cells = WhichCells(human, downsample = 200, seed = 12345))
+human_de_genes <- c(human_rod_list, human_scone_list, human_lmcone_list)
+human <- human[human_de_genes,]
+FeaturePlot(human_subset, features = c("OPN1SW", "THRB", "RHO"))
+
+```
+
+```{r}
+#Reading GeneMart data
+merge_1_2_3_4 = read.csv('/Users/vishruthdinesh/Downloads/martMergeRefHuman_cleaned_file.csv')
+
+mouse_subset = subset(mouse, cells = WhichCells(mouse, downsample = 82, seed = 12345))
+marmoset_subset = subset(int_marmoset, cells = WhichCells(int_marmoset, downsample = 140, seed = 12345))
+chicken_subset = subset(chicken, cells = WhichCells(chicken, downsample = 40, seed = 12345))
+lizard_subset = subset(lizard, cells = WhichCells(lizard, downsample = 120, seed = 12345))
+cow_subset = subset(cow, cells = WhichCells(cow, downsample = 150, seed = 12345))
+squirrel_subset = subset(squirrel, cells = WhichCells(squirrel, downsample = 250, seed = 12345))
+human_subset = subset(human, cells = WhichCells(human, downsample = 100, seed = 12345))
+#OG CHICKEN = 200
+
+oneToOneMartMouMarChiLiz <- merge_1_2_3_4[
+  merge_1_2_3_4$Mouse.homology.type == "ortholog_one2one" & 
+    merge_1_2_3_4$White.tufted.ear.marmoset.homology.type == "ortholog_one2one"
+  & merge_1_2_3_4$Green.anole.homology.type == "ortholog_one2one"&
+    merge_1_2_3_4$Chicken.homology.type == "ortholog_one2one"&
+    merge_1_2_3_4$Cow.homology.type == "ortholog_one2one"&
+    merge_1_2_3_4$Squirrel.homology.type=="ortholog_one2one",]
+
+
+message("Intersection of marmoset, mouse, chicken, lizard ", nrow(oneToOneMartMouMarChiLiz))
+
+```
+
+```{r}
+#Converting Mouse, Lizard, and Chicken genes to uppercase to match upper Marmoset genes
+oneToOneMartMouMarChiLiz$Mouse.gene.name <- toupper(oneToOneMartMouMarChiLiz$Mouse.gene.name)
+oneToOneMartMouMarChiLiz$Chicken.gene.name <- toupper(oneToOneMartMouMarChiLiz$Chicken.gene.name)
+oneToOneMartMouMarChiLiz$Green.anole.gene.name <- toupper(oneToOneMartMouMarChiLiz$Green.anole.gene.name)
+oneToOneMartMouMarChiLiz$Cow.gene.name <- toupper(oneToOneMartMouMarChiLiz$Cow.gene.name)
+oneToOneMartMouMarChiLiz$Squirrel.gene.name <- toupper(oneToOneMartMouMarChiLiz$Squirrel.gene.name)
+#oneToOneMartMouMarChiLiz$Zebrafish.gene.name <- toupper(oneToOneMartMouMarChiLiz$Zebrafish.gene.name)
+
+#Filtering current genes to only include 1:1 ortholog genes
+mouse_genes <- oneToOneMartMouMarChiLiz$Mouse.gene.name
+marmoset_genes <- oneToOneMartMouMarChiLiz$White.tufted.ear.marmoset.gene.name
+lizard_genes <- oneToOneMartMouMarChiLiz$Green.anole.gene.name
+chicken_genes <- oneToOneMartMouMarChiLiz$Chicken.gene.name
+cow_genes <- oneToOneMartMouMarChiLiz$Cow.gene.name
+squirrel_genes <- oneToOneMartMouMarChiLiz$Squirrel.gene.name
+#zebrafish_genes <- oneToOneMartMouMarChiLiz$Zebrafish.gene.name
+
+#Creating a common list of genes btwn. the two species
+gene_lists <- list(cow_genes, squirrel_genes)
+
+
+additional_genes <- c("OPN1SW", "OPN1LW", "CCDC136", "OPN2SW", "OPN1MW", "PTPRD", "SLC4A7", "CDH20", "SAG")
+# Find the intersection of genes in all lists
+common_genes <- Reduce(intersect, gene_lists)
+common_genes <- c(common_genes, additional_genes)
+length(common_genes)
+
+
+
+#Subsetting genes that are not 1:1 and not matching in the two datasets
+ortho_marmoset <- marmoset_subset[common_genes,]
+ortho_mouse <- mouse_subset[common_genes,]
+ortho_lizard<- lizard_subset[common_genes,]
+ortho_chicken <- chicken_subset[common_genes,]
+ortho_cow <- cow_subset[common_genes,]
+ortho_squirrel <- squirrel_subset[common_genes,]
+ortho_human <- human_subset[common_genes,]
+#ortho_zfish <- zfish[common_genes,]
+
+#Providing a species label for the 5 datasets
+ortho_mouse$species = "mouse"
+ortho_chicken$species = "chicken"
+ortho_marmoset$species = "marmoset"
+ortho_lizard$species = "lizard"
+ortho_cow$species = "cow"
+ortho_squirrel$species = "squirrel"
+ortho_human$species = "human"
+ortho_human$celltype <- ortho_human$annotated_class
+#ortho_zfish$species = "zfish"
+```
+
+```{r}
+#Merging the Datasets
+ph <- merge(ortho_cow, y = c(ortho_squirrel), add.cell.ids = c("cow","squirrel"), project = "merge")
+table(ph$species)
+```
+
+
+```{r}
+#Integrating using ClusterSeruat function 
+cow$species <- "cow"
+squirrel$species <- "squirrel"
+OrthoObject2 = ClusterSeurat(ph, nfeatures = 2000, numPCs = 15, integrate.by = "species", cluster_resolution = 0.8)
+```
+
+```{r}
+#Renaming some of the cell-types
+OrthoObject2$celltype <- sub("Rod", "rod", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("ML_cone", "l/m-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("MW_cone", "l/m-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("S_cone", "s-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("mlCone", "l/m-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("SCone", "s-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("sCones", "s-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("l/m-cones", "l/m-cone", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("rods", "rod", OrthoObject2$celltype)
+OrthoObject2$celltype <- sub("double", "double-cone", OrthoObject2$celltype)
+```
+
+
+```{r}
+#UMAP Plots
+celltype_colors <- c("rod" = "limegreen", "s-cone" = "cornflowerblue", "l/m-cone" = "brown1", "double-cone" = "orange")
+seurat_colors <- c("0" = "brown1", "1" = "cornflowerblue", "2" = "limegreen", "3" = "limegreen")
+DimPlot(OrthoObject2, group.by = "celltype")
+DimPlot(OrthoObject2, group.by = "species")
+DimPlot(OrthoObject2, reduction = "umap")
+DimPlot(OrthoObject2, split.by = "species", group.by = "celltype")
+table(OrthoObject2$celltype, OrthoObject2$seurat_clusters)
+table(OrthoObject2$species)
+```
+
+```{r}
+
+```
+
+
+```{r}
+#LM Cone
+lmcone_markers_all <- FindMarkers(OrthoObject2, ident.1 = "1", ident.2 = NULL, only.pos = TRUE)
+head(lmcone_markers_all, n = 20)
+DimPlot(OrthoObject2, split.by = "species", group.by = "celltype")
+```
+
+
+```{r}
+#seeing how 'ph' looks
+ph <- NormalizeData(ph)
+ph <- FindVariableFeatures(ph, nfeatures = 2000)
+ph <- ScaleData(ph)
+ph <- RunPCA(ph)
+ph <- RunUMAP(ph, dims = 1:50)
+DimPlot(ph)
+ph <- FindNeighbors(ph, dims = 1:10)
+ph <- FindClusters(ph, resolution = 0.5)
+DimPlot(ph, group.by = "species")
+```
+
+```{r}
+Idents(OrthoObject2) = "seurat_clusters"
+
+table(OrthoObject2$celltype, OrthoObject2$seurat_clusters)
+FeaturePlot(OrthoObject2, features = c( "OPN1SW", "THRB"))
+FeaturePlot(OrthoObject2, features = c("OPN1SW", "CCDC136"), cols = c('V0' = 'grey', 'V6' = 'purple', 'V8' = 'purple'),blend = TRUE)
+```
+```{r}
+#How every species looks. Does LM and S cone separate?
+
+#FINDING DE GENES FOR EVERY CELL-TYPE IN EVERY SPECIES - IN THE CODE ABOVE EVERY SPECIES' GENES ARE SUBSETTED TO INCLUDE ONLY CELL-TYPE DE GENES
+
+#Marmoset
+
+#Rod
+rod_markers_marmoset <- FindMarkers(int_marmoset, ident.1 = "rod", ident.2 = NULL, only.pos = TRUE)
+head(rod_markers_marmoset, n = 20)
+marmoset_rod_list <- rownames(rod_markers_marmoset)
+
+#S-cone
+scone_markers_marmoset <- FindMarkers(int_marmoset, ident.1 = "s-cone", ident.2 = NULL, only.pos = TRUE)
+head(scone_markers_marmoset, n = 20)
+marmoset_scone_list <- rownames(scone_markers_marmoset)
+
+#LM Cone
+lmcone_markers_marmoset <- FindMarkers(int_marmoset, ident.1 = "l/m-cone", ident.2 = NULL, only.pos = TRUE)
+head(lmcone_markers_marmoset, n = 20)
+marmoset_lmcone_list <- rownames(lmcone_markers_marmoset)
+
+#LIZARD
+lizard <- FindClusters(lizard, resolution = 0.1)
+DimPlot(lizard, reduction = "umap")
+Idents(lizard) = "seurat_clusters"
+FeaturePlot(lizard, features = c("THRB"))
+
+#Rod
+Idents(lizard) = "celltype"
+rod_markers_lizard <- FindMarkers(lizard, ident.1 = "rod", ident.2 = NULL, only.pos = TRUE)
+head(rod_markers_lizard, n = 20)
+lizard_rod_list <- rownames(rod_markers_lizard)
+
+#S-cone
+scone_markers_lizard <- FindMarkers(lizard, ident.1 = "s-cone", ident.2 = NULL, only.pos = TRUE)
+head(scone_markers_lizard, n = 20)
+lizard_scone_list <- rownames(scone_markers_lizard)
+
+#LM cone
+lmcone_markers_lizard <- FindMarkers(lizard, ident.1 = "l/m-cone", ident.2 = NULL, only.pos = TRUE)
+head(lmcone_markers_lizard, n = 20)
+lizard_lmcone_list <- rownames(lmcone_markers_lizard)
+
+#CHICKEN
+chicken <- FindClusters(chicken, resolution = 0.1)
+DimPlot(chicken, reduction = "umap")
+DimPlot(chicken, group.by = "celltype")
+Idents(chicken) = "seurat_clusters"
+FeaturePlot(chicken, features = c("GRIK3", "CALB1"), cols = c('V0' = 'grey', 'V6' = 'purple', 'V8' = 'purple'),blend = TRUE)
+
+#Rod
+Idents(chicken) = "celltype"
+rod_markers_chicken <- FindMarkers(chicken, ident.1 = "rod", ident.2 = NULL, only.pos = TRUE)
+head(rod_markers_chicken, n = 20)
+chicken_rod_list <- rownames(rod_markers_chicken)
+
+#S-cone
+scone_markers_chicken <- FindMarkers(chicken, ident.1 = "s-cone", ident.2 = NULL, only.pos = TRUE)
+head(scone_markers_chicken, n = 20)
+chicken_scone_list <- rownames(scone_markers_chicken)
+
+#LM cone
+lmcone_markers_chicken <- FindMarkers(chicken, ident.1 = "l/m-cone", ident.2 = NULL, only.pos = TRUE)
+head(lmcone_markers_chicken, n = 20)
+chicken_lmcone_list <- rownames(lmcone_markers_chicken)
+
+#Double
+double_markers_chicken <- FindMarkers(chicken, ident.1 = "double", ident.2 = NULL, only.pos = TRUE)
+head(double_markers_chicken, n = 20)
+chicken_double_list <- rownames(double_markers_chicken)
+chicken_double_list <- chicken_double_list[1:20]
+
+#MOUSE
+mouse <- FindClusters(mouse, resolution = 0.1)
+DimPlot(mouse, reduction = "umap")
+Idents(mouse) = "celltype"
+FeaturePlot(mouse, features = c("OPN1SW"))
+
+#Rod
+rod_markers_mouse <- FindMarkers(mouse, ident.1 = "rod", ident.2 = c("s-cone", "l/m-cone"))
+head(rod_markers_mouse, n = 20)
+mouse_rod_list <- rownames(rod_markers_mouse)
+
+
+#S-cone
+scone_markers_mouse <- FindMarkers(mouse, ident.1 = "s-cone", ident.2 = NULL, only.pos = TRUE)
+head(scone_markers_mouse, n = 20)
+mouse_scone_list <- rownames(scone_markers_mouse)
+
+#LM cone
+lmcone_markers_mouse <- FindMarkers(mouse, ident.1 = "l/m-cone", ident.2 = NULL, only.pos = TRUE)
+head(lmcone_markers_mouse, n = 20)
+mouse_lmcone_list <- rownames(lmcone_markers_mouse)
+
+#COW
+cow <- FindClusters(cow, resolution = 0.5)
+DimPlot(cow, reduction = "umap")
+Idents(cow) = "celltype"
+FeaturePlot(cow, features = c("OPN1LW"))
+
+#Rod
+rod_markers_cow <- FindMarkers(cow, ident.1 = "Rod", ident.2 = NULL, only.pos = TRUE)
+head(rod_markers_cow, n = 20)
+cow_rod_list <- rownames(rod_markers_cow)
+
+#S-cone
+scone_markers_cow <- FindMarkers(cow, ident.1 = "S_cone", ident.2 = NULL, only.pos = TRUE)
+head(scone_markers_cow, n = 20)
+cow_scone_list <- rownames(scone_markers_cow)
+
+#LM cone
+lmcone_markers_cow <- FindMarkers(cow, ident.1 = "ML_cone", ident.2 = NULL, only.pos = TRUE)
+head(lmcone_markers_cow, n = 20)
+cow_lmcone_list <- rownames(lmcone_markers_cow)
+
+#SQUIRREL
+squirrel <- FindClusters(squirrel, resolution = 0.5)
+DimPlot(squirrel, reduction = "umap")
+Idents(squirrel) = "celltype"
+FeaturePlot(squirrel, features = c("GNAT1"))
+
+#Rod
+rod_markers_squirrel <- FindMarkers(squirrel, ident.1 = "rod", ident.2 = NULL, only.pos = TRUE)
+head(rod_markers_squirrel, n = 20)
+squirrel_rod_list <- rownames(rod_markers_squirrel)
+
+#S-cone
+scone_markers_squirrel <- FindMarkers(squirrel, ident.1 = "s-cone", ident.2 = NULL, only.pos = TRUE)
+head(scone_markers_squirrel, n = 20)
+squirrel_scone_list <- rownames(scone_markers_squirrel)
+
+#LM Cone
+lmcone_markers_squirrel <- FindMarkers(squirrel, ident.1 = "l/m-cone", ident.2 = NULL, only.pos = TRUE)
+head(lmcone_markers_squirrel, n = 20)
+squirrel_lmcone_list <- rownames(lmcone_markers_squirrel)
+
+#HUMAN
+
+#Rod
+rod_markers_human <- FindMarkers(human, ident.1 = "Rods", ident.2 = NULL, only.pos = TRUE)
+head(rod_markers_human, n = 20)
+human_rod_list <- rownames(rod_markers_human)
+
+#S-cone
+scone_markers_human <- FindMarkers(human, ident.1 = "sCones", ident.2 = NULL, only.pos = TRUE)
+head(scone_markers_human, n = 20)
+human_scone_list <- rownames(scone_markers_human)
+
+#LM Cone
+lmcone_markers_human <- FindMarkers(human, ident.1 = "mlCones", ident.2 = NULL, only.pos = TRUE)
+head(lmcone_markers_human, n = 20)
+human_lmcone_list <- rownames(lmcone_markers_human)
+
+#Finding number of common DE genes across species of the same celltype
+marker_gene_lists_rod <- list(cow_rod_list, marmoset_rod_list, squirrel_rod_list, mouse_rod_list)
+
+marker_gene_lists_scone <- list(cow_scone_list, marmoset_scone_list, squirrel_scone_list, mouse_scone_list)
+
+marker_gene_lists_lmcone <- list(cow_lmcone_list,marmoset_lmcone_list, squirrel_lmcone_list, mouse_lmcone_list)
+
+# Find common genes using Reduce and intersect
+common_genes_rod <- Reduce(intersect, marker_gene_lists_rod)
+length(common_genes_rod)
+
+common_genes_scone <- Reduce(intersect, marker_gene_lists_scone)
+length(common_genes_scone)
+
+common_genes_lmcone <- Reduce(intersect, marker_gene_lists_lmcone)
+length(common_genes_lmcone)
+
+common_genes_double <- double_markers_chicken
+common_genes_double <- list(common_genes_double, double_markers_chicken)
+common_genes_double <- Reduce(intersect, common_genes_double)
+
+```
+

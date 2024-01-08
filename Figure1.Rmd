@@ -1,0 +1,103 @@
+```{r}
+#Load Libraries
+library(tidyverse)
+library(readxl)
+library(pals)
+## library(ggtree)
+library(ape)
+library(adephylo)
+library(Seurat)
+library(SeuratObject)
+library(ggplot2)
+library(ggdendro)
+library(cowplot)
+library(phylogram)
+library(dendextend)
+library(circlize)
+library(RColorBrewer)
+library(viridis)
+library(ggsci)
+library(pvclust)
+library(reshape2)
+
+distance <- read_excel("/Users/vishruthdinesh/Downloads/Figure1.xlsx")
+distance <- as.data.frame(distance)
+rownames(distance) <- distance$...1
+distance <- distance[,-1]
+distance
+
+# Hierarchical clustering without labels
+hc <- hclust(as.dist(distance))
+
+# Plot the dendrogram
+plot(hc, labels = FALSE, hang = -1)
+# ylab = "Evolutionary Distance (Myr)"
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Fig_1/Dendrogram.pdf", width = 7.5, height = 5)
+```
+
+```{r}
+#Supplementary Figure 1
+#human <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/Human_PR_Final.h5seurat")
+#marmoset <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/Marmoset_PR_Final.h5seurat")
+#mouse <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/Mouse_PR_Final.h5seurat")
+#squirrel <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/Squirrel_PR_Final.h5seurat")
+#cow <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/Cow_PR_Final.h5seurat")
+#lizard <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/Lizard_PR_Final.h5seurat")
+#chicken <- LoadH5Seurat("/Users/vishruthdinesh/Downloads/Ind_Seurat_Objects/Chicken_PR_Final.h5seurat")
+#human <- NormalizeData(human)
+#human <- FindVariableFeatures(human, nfeatures = 2000)
+#human <- ScaleData(human)
+#human <- RunPCA(human)
+#human <- RunUMAP(human, dims = 1:50)
+#human <- FindNeighbors(human, dims = 1:10)
+#human <- FindClusters(human, resolution = 0.5)
+#human$celltype = human$annotated_class
+
+#Standardizing Cell Type Name and Capitalization
+human$celltype <- sub("mlCone", "LM-cone", human$celltype)
+human$celltype <- sub("sCones", "S-cone", human$celltype)
+human$celltype <- sub("Rods", "Rod", human$celltype)
+
+marmoset$celltype <- sub("l/m-cone", "LM-cone", marmoset$celltype)
+marmoset$celltype <- sub("s-cone", "S-cone", marmoset$celltype)
+marmoset$celltype <- sub("rod", "Rod", marmoset$celltype)
+
+mouse$celltype <- sub("l/m-cone", "LM-cone", mouse$celltype)
+mouse$celltype <- sub("s-cone", "S-cone", mouse$celltype)
+mouse$celltype <- sub("rod", "Rod", mouse$celltype)
+
+squirrel$celltype <- sub("l/m-cone", "LM-cone", squirrel$celltype)
+squirrel$celltype <- sub("s-cone", "S-cone", squirrel$celltype)
+squirrel$celltype <- sub("rod", "Rod", squirrel$celltype)
+
+cow$celltype <- sub("ML_cone", "LM-cone", cow$celltype)
+cow$celltype <- sub("S_cone", "S-cone", cow$celltype)
+
+lizard$celltype <- sub("l/m-cone", "LM-cone", lizard$celltype)
+lizard$celltype <- sub("s-cone", "S-cone", lizard$celltype)
+lizard$celltype <- sub("rod", "Rod", lizard$celltype)
+
+chicken$celltype <- sub("l/m-cone", "LM-cone", chicken$celltype)
+chicken$celltype <- sub("s-cone", "S-cone", chicken$celltype)
+chicken$celltype <- sub("rod", "Rod", chicken$celltype)
+chicken$celltype <- sub("double", "Double-cone", chicken$celltype)
+
+DimPlot(human, group.by = "celltype") + NoAxes() +labs(title = NULL)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Supplementary/Legend.pdf", width = 7.5, height = 5)
+DimPlot(marmoset, group.by = "celltype")+NoLegend() + NoAxes() +labs(title = NULL)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Supplementary/1b.pdf", width = 7.5, height = 5)
+DimPlot(mouse, group.by = "celltype")+NoLegend() + NoAxes() +labs(title = NULL)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Supplementary/1c.pdf", width = 7.5, height = 5)
+DimPlot(squirrel, group.by = "celltype")+NoLegend() + NoAxes() +labs(title = NULL)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Supplementary/1d.pdf", width = 7.5, height = 5)
+DimPlot(cow, group.by = "celltype")+NoLegend() + NoAxes() +labs(title = NULL)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Supplementary/1e.pdf", width = 7.5, height = 5)
+DimPlot(lizard, group.by = "celltype")+NoLegend() + NoAxes() +labs(title = NULL)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Supplementary/1f.pdf", width = 7.5, height = 5)
+celltype_colors <- c("LM-cone" = "#E57474", "S-cone" = "#6495ED", "Rod" = "#14BF11", "Double-cone" = "#C78ECB")
+DimPlot(chicken, group.by = "celltype", cols = celltype_colors) + NoAxes() +labs(title = NULL)
+ggsave("/Users/vishruthdinesh/Downloads/Figures/Supplementary/1g_legend.pdf", width = 7.5, height = 5)
+
+```
+
+
